@@ -60,10 +60,7 @@ struct InstalledMemoryMapView: View {
             memoryBar(geometry: geometry, width: width)
 
             ForEach(chips) { chip in
-                if chip.id == 0
-                    || chip.isFocused
-                    || chip.placement.displacement > 6
-                {
+                if chip.placement.displacement > 6 {
                     leader(for: chip)
                         .trim(from: 0, to: revealed ? 1 : 0)
                         .stroke(
