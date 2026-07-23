@@ -165,10 +165,6 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary)
 
                 Spacer()
-
-                Text("Select a row for details")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
 

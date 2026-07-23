@@ -3,6 +3,7 @@ import SwiftUI
 
 struct InstalledMemoryMapView: View {
     let composition: MemoryComposition
+    let focusedGroupID: ProcessGroupID?
 
     @Environment(\.culpritReduceMotion) private var reduceMotion
     @State private var revealed = false
@@ -29,50 +30,71 @@ struct InstalledMemoryMapView: View {
                     proxy.size.width - CGFloat(max(0, itemCount - 1))
                 )
 
-                HStack(spacing: 1) {
-                    ForEach(
-                        Array(composition.segments.enumerated()),
-                        id: \.element.id
-                    ) { _, segment in
-                        CulpritTheme.identityColor(
-                            for: segment.group.displayName
-                        )
-                        .frame(
-                            width: usableWidth
-                                * segment.shareOfInstalledRAM
-                        )
-                        .accessibilityLabel(
-                            "\(segment.group.displayName), "
-                                + MetricFormatting.memory(segment.bytes)
-                        )
-                    }
+                ZStack(alignment: .topLeading) {
+                    HStack(spacing: 1) {
+                        ForEach(
+                            Array(composition.segments.enumerated()),
+                            id: \.element.id
+                        ) { _, segment in
+                            CulpritTheme.identityColor(
+                                for: segment.group.displayName
+                            )
+                            .frame(
+                                width: usableWidth
+                                    * segment.shareOfInstalledRAM
+                            )
+                            .accessibilityLabel(
+                                "\(segment.group.displayName), "
+                                    + MetricFormatting.memory(segment.bytes)
+                                    + (
+                                        segment.group.id == focusedGroupID
+                                            ? ", current issue"
+                                            : ""
+                                    )
+                            )
+                        }
 
-                    CulpritTheme.remainder
-                        .frame(
-                            width: usableWidth
-                                * composition.remainderShare
+                        CulpritTheme.remainder
+                            .frame(
+                                width: usableWidth
+                                    * composition.remainderShare
+                            )
+                            .accessibilityLabel(
+                                "macOS, other apps, and unused memory, "
+                                    + MetricFormatting.memory(
+                                        composition.remainderBytes
+                                    )
+                            )
+                    }
+                    .frame(height: 14)
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: 4,
+                            style: .continuous
                         )
-                        .accessibilityLabel(
-                            "macOS, other apps, and unused memory, "
-                                + MetricFormatting.memory(
-                                    composition.remainderBytes
-                                )
-                        )
-                }
-                .frame(height: 14)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: 4,
-                        style: .continuous
                     )
-                )
-                .scaleEffect(
-                    x: revealed ? 1 : 0,
-                    y: 1,
-                    anchor: .leading
-                )
+                    .scaleEffect(
+                        x: revealed ? 1 : 0,
+                        y: 1,
+                        anchor: .leading
+                    )
+
+                    if let marker = focusedMarker(
+                        usableWidth: usableWidth
+                    ) {
+                        Capsule()
+                            .fill(marker.color)
+                            .frame(width: 8, height: 2)
+                            .offset(
+                                x: marker.centerX - 4,
+                                y: 16
+                            )
+                            .opacity(revealed ? 1 : 0)
+                            .accessibilityHidden(true)
+                    }
+                }
             }
-            .frame(height: 14)
+            .frame(height: 18)
 
             HStack(spacing: 8) {
                 ForEach(
@@ -107,6 +129,35 @@ struct InstalledMemoryMapView: View {
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private func focusedMarker(
+        usableWidth: CGFloat
+    ) -> (centerX: CGFloat, color: Color)? {
+        guard let focusedGroupID,
+              let index = composition.segments.firstIndex(
+                  where: { $0.group.id == focusedGroupID }
+              )
+        else {
+            return nil
+        }
+
+        let precedingShare = composition.segments[..<index]
+            .reduce(CGFloat.zero) {
+                $0 + CGFloat($1.shareOfInstalledRAM)
+            }
+        let segment = composition.segments[index]
+        let centerX = usableWidth
+            * (
+                precedingShare
+                    + CGFloat(segment.shareOfInstalledRAM) / 2
+            )
+            + CGFloat(index)
+
+        return (
+            centerX,
+            CulpritTheme.identityColor(for: segment.group.displayName)
+        )
     }
 
     private func legendItem(

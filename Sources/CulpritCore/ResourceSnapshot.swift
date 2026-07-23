@@ -44,7 +44,8 @@ public struct MemoryComposition: Hashable, Sendable {
     public init(
         installedBytes: UInt64,
         groups: [ProcessGroup],
-        maximumVisibleSegments: Int = 5
+        maximumVisibleSegments: Int = 5,
+        prioritizedGroupID: ProcessGroupID? = nil
     ) {
         self.installedBytes = installedBytes
         var remainingBytes = installedBytes
@@ -52,7 +53,15 @@ public struct MemoryComposition: Hashable, Sendable {
         var foundOverlap = false
 
         let candidates = groups
-            .sorted { $0.memoryBytes > $1.memoryBytes }
+            .sorted { left, right in
+                if left.id == prioritizedGroupID {
+                    return right.id != prioritizedGroupID
+                }
+                if right.id == prioritizedGroupID {
+                    return false
+                }
+                return left.memoryBytes > right.memoryBytes
+            }
             .prefix(max(0, maximumVisibleSegments))
 
         for group in candidates {

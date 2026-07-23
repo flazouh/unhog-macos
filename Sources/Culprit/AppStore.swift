@@ -129,7 +129,8 @@ final class AppStore: ObservableObject {
         MemoryComposition(
             installedBytes: installedMemoryBytes,
             groups: latestGroups,
-            maximumVisibleSegments: 3
+            maximumVisibleSegments: 3,
+            prioritizedGroupID: focusedGroupID
         )
     }
 

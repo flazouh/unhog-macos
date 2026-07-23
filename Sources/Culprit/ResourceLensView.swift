@@ -10,7 +10,8 @@ struct ResourceLensView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             InstalledMemoryMapView(
-                composition: store.memoryComposition
+                composition: store.memoryComposition,
+                focusedGroupID: store.focusedGroupID
             )
 
             content
@@ -101,53 +102,58 @@ struct ResourceLensView: View {
         incident: ResourceIncident?
     ) -> some View {
         let explanation = store.explanation(for: group)
+        let signature = store.drainSignature(for: group)
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
-                ProcessIconView(group: group, size: 32)
+        return VStack(alignment: .leading, spacing: 0) {
+            Divider()
+                .opacity(0.45)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(explanation.workloadTitle)
-                        .font(.system(size: 16, weight: .semibold))
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: 9) {
+                Text(incidentEyebrow(incident))
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(0.55)
+                    .foregroundStyle(CulpritTheme.destructive)
 
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(CulpritTheme.destructive)
-                            .frame(width: 5, height: 5)
-                        Text("Needs attention")
-                            .foregroundStyle(CulpritTheme.destructive)
-                        Text("· \(workloadSubtitle(group, incident: incident))")
+                HStack(spacing: 10) {
+                    ProcessIconView(group: group, size: 34)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(explanation.workloadTitle)
+                            .font(.system(size: 17, weight: .semibold))
+                            .lineLimit(1)
+
+                        Text(workloadDeck(group, signature: signature))
+                            .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                        .font(.system(size: 11))
+
+                    Spacer(minLength: 8)
                 }
 
-                Spacer()
-            }
+                ResourceSignatureView(signature: signature)
 
-            ResourceSignatureView(
-                signature: store.drainSignature(for: group)
-            )
-
-            if showsEvidence {
-                evidence(group: group, explanation: explanation)
-                    .transition(
-                        reduceMotion
-                            ? .opacity
-                            : .opacity.combined(
-                                with: .scale(
-                                    scale: 0.97,
-                                    anchor: .top
+                if showsEvidence {
+                    evidence(group: group, explanation: explanation)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .opacity.combined(
+                                    with: .scale(
+                                        scale: 0.97,
+                                        anchor: .top
+                                    )
                                 )
-                            )
-                    )
-            }
+                        )
+                }
 
-            action(for: group)
+                action(for: group)
+            }
+            .padding(.vertical, 11)
+
+            Divider()
+                .opacity(0.45)
         }
-        .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
     }
 
@@ -189,14 +195,21 @@ struct ResourceLensView: View {
         .padding(.vertical, 2)
     }
 
-    private func workloadSubtitle(
-        _ group: ProcessGroup,
-        incident: ResourceIncident?
+    private func incidentEyebrow(
+        _ incident: ResourceIncident?
     ) -> String {
-        guard let incident else { return workloadScope(group) }
-        return workloadScope(group)
-            + " · "
-            + MetricFormatting.duration(incident.duration)
+        guard let incident else { return "NEEDS ATTENTION" }
+        return "NEEDS ATTENTION · "
+            + MetricFormatting.duration(incident.duration).uppercased()
+    }
+
+    private func workloadDeck(
+        _ group: ProcessGroup,
+        signature: DrainSignature
+    ) -> String {
+        let processes = "\(group.processCount) process"
+            + (group.processCount == 1 ? "" : "es")
+        return "\(processes) · \(signature.impact.rawValue.lowercased()) energy use"
     }
 
     @ViewBuilder
@@ -213,8 +226,11 @@ struct ResourceLensView: View {
                 .padding(.vertical, 6)
             } else {
                 HStack(spacing: 8) {
-                    Button(compactStopActionTitle(group)) {
+                    Button {
                         store.requestQuit(group.id)
+                    } label: {
+                        Text(visibleStopActionTitle(group))
+                            .lineLimit(1)
                     }
                     .buttonStyle(BorderlessActionStyle(tone: .primary))
                     .disabled(store.stopState != .idle)
@@ -260,10 +276,11 @@ struct ResourceLensView: View {
                     showsEvidence
                         ? "Hide details"
                         : branchCount > 0
-                            ? "Stack · \(branchCount) "
+                            ? "Manage \(branchCount) "
                                 + (branchCount == 1 ? "part" : "parts")
                             : "Details"
                 )
+                .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
                     .rotationEffect(.degrees(showsEvidence ? 180 : 0))
@@ -433,14 +450,6 @@ struct ResourceLensView: View {
         .padding(.vertical, 4)
     }
 
-    private func workloadScope(_ group: ProcessGroup) -> String {
-        let childCount = max(0, group.processCount - 1)
-        guard childCount > 0 else {
-            return group.displayName
-        }
-        return "\(group.displayName) + \(childCount) child process\(childCount == 1 ? "" : "es")"
-    }
-
     private func recoveryDisplayName(_ receipt: RecoveryReceipt) -> String {
         guard store.preferences.safety.showsProjectNames else {
             return receipt.displayName
@@ -471,15 +480,21 @@ struct ResourceLensView: View {
         )
     }
 
-    private func compactStopActionTitle(
+    private func visibleStopActionTitle(
         _ group: ProcessGroup
     ) -> String {
         let root = group.processes.first {
             $0.identity.pid == group.id.rootPID
         } ?? group.processes.first
-        return root?.executablePath.contains(".app/") == true
-            ? "Quit app"
-            : "Stop stack"
+        guard root?.executablePath.contains(".app/") == true else {
+            return "Stop stack"
+        }
+
+        let name = WorkloadPresentation.shortName(
+            for: group,
+            includesProjectName: false
+        )
+        return "Quit \(name)"
     }
 
     private func stoppingTitle(_ group: ProcessGroup) -> String {

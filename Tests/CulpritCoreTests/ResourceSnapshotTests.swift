@@ -19,6 +19,30 @@ struct ResourceSnapshotTests {
         #expect(composition.remainderShare == 0.65)
     }
 
+    @Test("The current issue stays visible in a compact memory map")
+    func keepsPrioritizedGroupVisible() {
+        let focused = group(
+            pid: 40,
+            name: "CPU-heavy",
+            cpu: 400,
+            memory: 10
+        )
+        let composition = MemoryComposition(
+            installedBytes: 1_000,
+            groups: [
+                group(pid: 10, name: "A", cpu: 1, memory: 300),
+                group(pid: 20, name: "B", cpu: 1, memory: 200),
+                group(pid: 30, name: "C", cpu: 1, memory: 100),
+                focused
+            ],
+            maximumVisibleSegments: 3,
+            prioritizedGroupID: focused.id
+        )
+
+        #expect(composition.segments.map(\.id).contains(focused.id))
+        #expect(composition.segments.first?.id == focused.id)
+    }
+
     @Test("Battery impact is a coarse CPU-derived estimate")
     func estimatesBatteryImpact() {
         #expect(BatteryDrainEstimate(cpuPercent: 4) == .low)
