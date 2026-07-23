@@ -6,7 +6,7 @@
 
 ## Product decision
 
-Culprit's menu bar item is an adaptive signal, not a permanent system monitor.
+Unhog's menu bar item is an adaptive signal, not a permanent system monitor.
 It uses only an icon while the Mac looks normal. During an incident, it adds
 the metric that explains the alert:
 
@@ -70,10 +70,10 @@ animation timer.
 VoiceOver speaks the full meaning instead of the compact label:
 
 ```text
-Culprit. No unusual resource drain.
-Culprit. Playwright needs attention and is using about 5.9 processor cores.
-Culprit. Stopping 6 Playwright processes.
-Culprit. Two targeted processes did not stop.
+Unhog. No unusual resource drain.
+Unhog. Playwright needs attention and is using about 5.9 processor cores.
+Unhog. Stopping 6 Playwright processes.
+Unhog. Two targeted processes did not stop.
 ```
 
 ## Settings information architecture
@@ -97,10 +97,10 @@ Use a compact native sidebar and one borderless content column:
 ┌────────────────────────────────────────────────────────┐
 │ General          Menu bar                              │
 │ Monitoring       Adaptive                         [⌄]  │
-│ Notifications    Quiet until Culprit needs attention  │
+│ Notifications    Quiet until Unhog needs attention    │
 │ Safety & privacy                                      │
 │ Advanced         Start at login                  [—]  │
-│                  Open Culprit shortcut             —  │
+│                  Open Unhog shortcut               —  │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +111,7 @@ Keep explanations directly below the control they clarify.
 
 | Setting | Options | Default |
 | --- | --- | --- |
-| Start Culprit at login | On / Off | Off |
+| Start Unhog at login | On / Off | Off |
 | Menu bar display | Adaptive / Icon only / Top CPU / Top RAM | Adaptive |
 | Motion | Follow macOS / Reduced | Follow macOS |
 
@@ -119,7 +119,7 @@ Keep explanations directly below the control they clarify.
 metric while attention is needed. Top CPU and Top RAM mean the top visible
 workload, not the whole Mac.
 
-The system Reduce Motion setting always wins. Culprit never lets `Full`
+The system Reduce Motion setting always wins. Unhog never lets `Full`
 override an accessibility choice.
 
 ### Monitoring
@@ -173,8 +173,8 @@ Editable:
 
 Read-only guarantees:
 
-> Culprit monitors and stops only processes owned by you. macOS processes,
-> other users' processes, and Culprit itself are protected. Process identities
+> Unhog monitors and stops only processes owned by you. macOS processes,
+> other users' processes, and Unhog itself are protected. Process identities
 > are checked again before every stop. Resource data stays on this Mac.
 
 Force Quit always requires an explicit confirmation. It is not a setting.
@@ -189,7 +189,7 @@ Advanced settings exist for users who choose `Custom`:
 | Memory threshold | Percentage of installed RAM, with GB equivalent secondary |
 | Sustained duration | Time above the threshold before attention |
 | Sampling profile | Efficient / Adaptive / Responsive |
-| Recovery verification window | How long Culprit checks after a stop |
+| Recovery verification window | How long Unhog checks after a stop |
 | Reset to Balanced | Restores recommended monitoring values |
 | Export diagnostics | Local, redacted report for support |
 
@@ -201,7 +201,7 @@ cannot create a hot polling loop.
 The following guarantees are not customizable:
 
 - system-process and other-user protection
-- protection of Culprit itself
+- protection of Unhog itself
 - PID plus process-start-time identity verification
 - graceful stop before Force Quit
 - confirmation before Force Quit
@@ -248,7 +248,7 @@ protections do not come from preferences.
 - Recommended settings fit without opening Advanced.
 - Custom thresholds use cores and installed-RAM share, not confusing raw
   process percentages.
-- macOS notification permission and Culprit's preference cannot disagree
+- macOS notification permission and Unhog's preference cannot disagree
   silently.
 - No preference can weaken process identity or termination protection.
 - Recovered state shows only a measured, verified improvement.

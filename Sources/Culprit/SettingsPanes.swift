@@ -27,7 +27,7 @@ struct GeneralSettingsPane: View {
                     + "behind an alert."
             )
             Toggle(
-                "Start Culprit at login",
+                "Start Unhog at login",
                 isOn: Binding(
                     get: { store.preferences.general.startsAtLogin },
                     set: { store.setStartsAtLogin($0) }
@@ -248,7 +248,7 @@ struct SafetySettingsPane: View {
                     )
                 )
                 Toggle(
-                    "Show project names in Culprit",
+                    "Show project names in Unhog",
                     isOn: preferenceBinding(
                         store,
                         \.safety.showsProjectNames
@@ -258,7 +258,7 @@ struct SafetySettingsPane: View {
             SettingsGroup("Permanent safeguards") {
                 SafeguardRow(
                     "User processes only",
-                    "macOS processes, other users, and Culprit stay protected."
+                    "macOS processes, other users, and Unhog stay protected."
                 )
                 SafeguardRow(
                     "Identity checked before every signal",

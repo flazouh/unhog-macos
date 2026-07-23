@@ -3,13 +3,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "Culprit",
+    name: "Unhog",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .library(name: "CulpritCore", targets: ["CulpritCore"]),
-        .executable(name: "Culprit", targets: ["Culprit"])
+        .executable(name: "Unhog", targets: ["Culprit"])
     ],
     targets: [
         .target(name: "CulpritCore"),

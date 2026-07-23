@@ -74,7 +74,7 @@ actor NotificationController {
         content.title = policy.showsWorkloadNames
             ? "\(receipt.displayName) started again"
             : "A stopped workload started again"
-        content.body = "Culprit will not stop it again without your approval."
+        content.body = "Unhog will not stop it again without your approval."
         content.sound = policy.playsSound ? .default : nil
         try? await center.add(
             UNNotificationRequest(

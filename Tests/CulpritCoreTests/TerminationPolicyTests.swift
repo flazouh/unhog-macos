@@ -37,14 +37,14 @@ struct TerminationPolicyTests {
     @Test("The monitor cannot terminate itself")
     func protectsItself() {
         let group = group(
-            name: "Culprit",
+            name: "Unhog",
             ownerUID: 501,
-            processes: [process(pid: 999, parent: 1, name: "Culprit", ownerUID: 501)]
+            processes: [process(pid: 999, parent: 1, name: "Unhog", ownerUID: 501)]
         )
 
         let plan = TerminationPolicy(currentUID: 501, appPID: 999).plan(for: group)
 
-        #expect(plan.capability == .protected(reason: "Culprit protects itself"))
+        #expect(plan.capability == .protected(reason: "Unhog protects itself"))
         #expect(plan.targets.isEmpty)
     }
 

@@ -1,32 +1,33 @@
 #!/bin/zsh
 set -euo pipefail
 
-CULPRIT_ROOT="${0:A:h:h}"
-CULPRIT_BUILD="$CULPRIT_ROOT/.build"
-CULPRIT_APP="$CULPRIT_ROOT/dist/Culprit.app"
-CULPRIT_CONTENTS="$CULPRIT_APP/Contents"
+UNHOG_ROOT="${0:A:h:h}"
+UNHOG_BUILD="$UNHOG_ROOT/.build"
+UNHOG_APP="$UNHOG_ROOT/dist/Unhog.app"
+UNHOG_CONTENTS="$UNHOG_APP/Contents"
 
 env \
-  CLANG_MODULE_CACHE_PATH="$CULPRIT_BUILD/cache/clang" \
-  SWIFTPM_MODULECACHE_OVERRIDE="$CULPRIT_BUILD/cache/swiftpm" \
-  XDG_CACHE_HOME="$CULPRIT_BUILD/cache" \
+  CLANG_MODULE_CACHE_PATH="$UNHOG_BUILD/cache/clang" \
+  SWIFTPM_MODULECACHE_OVERRIDE="$UNHOG_BUILD/cache/swiftpm" \
+  XDG_CACHE_HOME="$UNHOG_BUILD/cache" \
   swift build \
-    --package-path "$CULPRIT_ROOT" \
+    --package-path "$UNHOG_ROOT" \
+    --product Unhog \
     --configuration release \
     --disable-sandbox
 
-if [[ -e "$CULPRIT_APP" ]]; then
-  rm -rf "$CULPRIT_APP"
+if [[ -e "$UNHOG_APP" ]]; then
+  rm -rf "$UNHOG_APP"
 fi
 
-install -d "$CULPRIT_CONTENTS/MacOS"
-install -d "$CULPRIT_CONTENTS/Resources"
-install -m 755 "$CULPRIT_BUILD/release/Culprit" "$CULPRIT_CONTENTS/MacOS/Culprit"
-install -m 644 "$CULPRIT_ROOT/Support/Info.plist" "$CULPRIT_CONTENTS/Info.plist"
+install -d "$UNHOG_CONTENTS/MacOS"
+install -d "$UNHOG_CONTENTS/Resources"
+install -m 755 "$UNHOG_BUILD/release/Unhog" "$UNHOG_CONTENTS/MacOS/Unhog"
+install -m 644 "$UNHOG_ROOT/Support/Info.plist" "$UNHOG_CONTENTS/Info.plist"
 cp -R \
-  "$CULPRIT_BUILD/release/Culprit_Culprit.bundle" \
-  "$CULPRIT_CONTENTS/Resources/Culprit_Culprit.bundle"
+  "$UNHOG_BUILD/release/Unhog_Culprit.bundle" \
+  "$UNHOG_CONTENTS/Resources/Unhog_Culprit.bundle"
 
-codesign --force --sign - "$CULPRIT_APP"
+codesign --force --sign - "$UNHOG_APP"
 
-print "Built $CULPRIT_APP"
+print "Built $UNHOG_APP"

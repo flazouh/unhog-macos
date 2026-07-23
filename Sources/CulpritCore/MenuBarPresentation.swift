@@ -105,19 +105,19 @@ public struct MenuBarPresentation: Equatable, Sendable {
             return .init(
                 symbolName: "circle.dotted",
                 compactLabel: nil,
-                accessibilityLabel: "Culprit. Measuring system activity."
+                accessibilityLabel: "Unhog. Measuring system activity."
             )
         case .calm:
             return .init(
                 symbolName: "circle",
                 compactLabel: nil,
-                accessibilityLabel: "Culprit. No unusual resource drain."
+                accessibilityLabel: "Unhog. No unusual resource drain."
             )
         case .paused:
             return .init(
                 symbolName: "pause.circle",
                 compactLabel: nil,
-                accessibilityLabel: "Culprit. Monitoring is paused."
+                accessibilityLabel: "Unhog. Monitoring is paused."
             )
         case let .attention(incident):
             let isHigh = incident.severity == .high
@@ -144,8 +144,8 @@ public struct MenuBarPresentation: Equatable, Sendable {
                     )
                 },
                 accessibilityLabel: incident.map {
-                    "Culprit. Stopping \($0.group.displayName)."
-                } ?? "Culprit. Stopping the selected workload."
+                    "Unhog. Stopping \($0.group.displayName)."
+                } ?? "Unhog. Stopping the selected workload."
             )
         case let .recovered(receipt):
             let metric = recoveredMetric(receipt)
@@ -153,21 +153,21 @@ public struct MenuBarPresentation: Equatable, Sendable {
                 symbolName: "checkmark.circle",
                 compactLabel: metric.compact,
                 accessibilityLabel:
-                    "Culprit. Resource use recovered. \(metric.spoken)"
+                    "Unhog. Resource use recovered. \(metric.spoken)"
             )
         case let .restarted(receipt):
             return .init(
                 symbolName: "arrow.clockwise.circle",
                 compactLabel: nil,
                 accessibilityLabel:
-                    "Culprit. \(receipt.displayName) restarted after it was stopped."
+                    "Unhog. \(receipt.displayName) restarted after it was stopped."
             )
         case let .partial(_, remainingCount):
             return .init(
                 symbolName: "exclamationmark.triangle",
                 compactLabel: "\(remainingCount)",
                 accessibilityLabel:
-                    "Culprit. \(remainingCount) targeted process"
+                    "Unhog. \(remainingCount) targeted process"
                     + (remainingCount == 1 ? " is" : "es are")
                     + " still running."
             )
@@ -196,13 +196,13 @@ public struct MenuBarPresentation: Equatable, Sendable {
         switch incident.signal {
         case .cpu:
             let cores = decimal(incident.group.cpuPercent / 100)
-            return "Culprit. \(incident.group.displayName) needs attention and is using about \(cores) processor cores."
+            return "Unhog. \(incident.group.displayName) needs attention and is using about \(cores) processor cores."
         case .memory:
             let share = memoryShareLabel(
                 bytes: incident.group.memoryBytes,
                 installed: installedMemoryBytes
             )
-            return "Culprit. \(incident.group.displayName) needs attention and is using \(share) of installed memory."
+            return "Unhog. \(incident.group.displayName) needs attention and is using \(share) of installed memory."
         }
     }
 

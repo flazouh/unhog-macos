@@ -54,7 +54,7 @@ public struct TerminationPolicy: Sendable {
     ) -> TerminationPlan {
         if processes.contains(where: { $0.identity.pid == appPID }) {
             return TerminationPlan(
-                capability: .protected(reason: "Culprit protects itself"),
+                capability: .protected(reason: "Unhog protects itself"),
                 targets: []
             )
         }

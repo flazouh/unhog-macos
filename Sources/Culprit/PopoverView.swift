@@ -90,7 +90,7 @@ struct PopoverView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(statusColor)
 
-            Text("Culprit")
+            Text("Unhog")
                 .font(.system(size: 14, weight: .semibold))
 
             Spacer()
@@ -131,7 +131,7 @@ struct PopoverView: View {
 
             Divider()
 
-            Button("Quit Culprit", role: .destructive) {
+            Button("Quit Unhog", role: .destructive) {
                 store.quitApplication()
             }
         } label: {
@@ -143,7 +143,7 @@ struct PopoverView: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .foregroundStyle(.secondary)
-        .accessibilityLabel("Culprit menu")
+        .accessibilityLabel("Unhog menu")
     }
 
     private var activity: some View {

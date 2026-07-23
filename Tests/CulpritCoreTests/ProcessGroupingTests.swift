@@ -7,9 +7,9 @@ struct ProcessGroupingTests {
     func groupsPlaywrightHelpers() {
         let samples = [
             sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 3, memory: 100),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/alex/.bun/bin/bun", cpu: 7, memory: 80),
-            sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Users/alex/Library/Caches/ms-playwright/chromium_headless_shell", cpu: 180, memory: 300),
-            sample(pid: 121, parent: 120, name: "Chromium Helper (GPU)", path: "/Users/alex/Library/Caches/ms-playwright/Chromium Helper", cpu: 130, memory: 400)
+            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7, memory: 80),
+            sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Users/example/Library/Caches/ms-playwright/chromium_headless_shell", cpu: 180, memory: 300),
+            sample(pid: 121, parent: 120, name: "Chromium Helper (GPU)", path: "/Users/example/Library/Caches/ms-playwright/Chromium Helper", cpu: 130, memory: 400)
         ]
 
         let groups = ProcessGrouper().groups(from: samples)
@@ -43,9 +43,9 @@ struct ProcessGroupingTests {
     func separatesTaggedSiblingLaunchers() {
         let samples = [
             sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 1, memory: 10),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/alex/.bun/bin/bun", cpu: 5, memory: 20, tags: [.playwright]),
+            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 5, memory: 20, tags: [.playwright]),
             sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
-            sample(pid: 210, parent: 100, name: "bun", path: "/Users/alex/.bun/bin/bun", cpu: 7, memory: 30, tags: [.playwright]),
+            sample(pid: 210, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7, memory: 30, tags: [.playwright]),
             sample(pid: 220, parent: 210, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 120, memory: 300)
         ]
 
@@ -63,7 +63,7 @@ struct ProcessGroupingTests {
     func separatesPlaywrightSessions() {
         let samples = [
             sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 1, memory: 10),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/alex/.bun/bin/bun", cpu: 1, memory: 10),
+            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 1, memory: 10),
             sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
             sample(pid: 200, parent: 1, name: "Terminal", path: "/System/Applications/Utilities/Terminal.app/Terminal", cpu: 1, memory: 10),
             sample(pid: 210, parent: 200, name: "node", path: "/opt/homebrew/bin/node", cpu: 1, memory: 10),
@@ -105,15 +105,15 @@ struct ProcessGroupingTests {
             parentPID: 1,
             ownerUID: 501,
             name: "bun",
-            executablePath: "/Users/alex/.bun/bin/bun",
-            workingDirectory: "/Users/alex/Documents/fluentai.worktrees/ds-rebuild",
+            executablePath: "/Users/example/.bun/bin/bun",
+            workingDirectory: "/Users/example/Projects/sample-app",
             cpuPercent: 18,
             memoryBytes: 3_860
         )
 
         let bun = ProcessGrouper().groups(from: [sample]).first
 
-        #expect(bun?.contextLabel == "FluentAI · ds-rebuild")
+        #expect(bun?.contextLabel == "sample-app")
     }
 
     private func sample(

@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Culprit</string>
+    <string>Unhog</string>
     <key>CFBundleExecutable</key>
-    <string>Culprit</string>
+    <string>Unhog</string>
     <key>CFBundleIdentifier</key>
-    <string>com.alex.culprit</string>
+    <string>app.unhog.macos</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Culprit</string>
+    <string>Unhog</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -27,7 +27,7 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026 Alex</string>
+    <string>Copyright © 2026 Unhog contributors</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

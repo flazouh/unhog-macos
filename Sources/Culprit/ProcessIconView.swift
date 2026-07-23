@@ -113,7 +113,7 @@ private final class ToolIconImageCache {
 
 private enum ToolIconResourceBundle {
     static let bundle: Bundle? = {
-        let bundleName = "Culprit_Culprit.bundle"
+        let bundleName = "Unhog_Culprit.bundle"
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent(bundleName),
             Bundle.main.bundleURL.appendingPathComponent(bundleName)

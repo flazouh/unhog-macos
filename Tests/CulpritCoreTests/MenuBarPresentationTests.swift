@@ -15,7 +15,7 @@ struct MenuBarPresentationTests {
 
         #expect(presentation.symbolName == "circle")
         #expect(presentation.compactLabel == nil)
-        #expect(presentation.accessibilityLabel == "Culprit. No unusual resource drain.")
+        #expect(presentation.accessibilityLabel == "Unhog. No unusual resource drain.")
     }
 
     @Test("CPU incident explains processor cores")
@@ -33,7 +33,7 @@ struct MenuBarPresentationTests {
         #expect(presentation.compactLabel == "5.9c")
         #expect(
             presentation.accessibilityLabel
-                == "Culprit. bun needs attention and is using about 5.9 processor cores."
+                == "Unhog. bun needs attention and is using about 5.9 processor cores."
         )
     }
 
@@ -51,7 +51,7 @@ struct MenuBarPresentationTests {
         #expect(presentation.compactLabel == "6%")
         #expect(
             presentation.accessibilityLabel
-                == "Culprit. bun needs attention and is using 6% of installed memory."
+                == "Unhog. bun needs attention and is using 6% of installed memory."
         )
     }
 
@@ -80,7 +80,7 @@ struct MenuBarPresentationTests {
         #expect(presentation.compactLabel == "3.9 GB")
         #expect(
             presentation.accessibilityLabel
-                == "Culprit. Resource use recovered. Workload memory fell by 3.9 gigabytes."
+                == "Unhog. Resource use recovered. Workload memory fell by 3.9 gigabytes."
         )
     }
 
@@ -112,7 +112,7 @@ struct MenuBarPresentationTests {
         #expect(presentation.compactLabel == "5.9c")
         #expect(
             presentation.accessibilityLabel
-                == "Culprit. No unusual resource drain. Top workload bun is using about 5.9 processor cores."
+                == "Unhog. No unusual resource drain. Top workload bun is using about 5.9 processor cores."
         )
     }
 
@@ -177,7 +177,7 @@ struct MenuBarPresentationTests {
             parentPID: 1,
             ownerUID: 501,
             name: "bun",
-            executablePath: "/Users/alex/.bun/bin/bun",
+            executablePath: "/Users/example/.bun/bin/bun",
             cpuPercent: cpu,
             memoryBytes: memory
         )

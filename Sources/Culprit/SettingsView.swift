@@ -20,7 +20,7 @@ struct SettingsView: View {
 
         var summary: String {
             switch self {
-            case .general: "How Culprit appears and starts."
+            case .general: "How Unhog appears and starts."
             case .monitoring:
                 "Choose when sustained drain deserves attention."
             case .notifications:
@@ -62,7 +62,7 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label("Culprit", systemImage: "circle.lefthalf.filled")
+            Label("Unhog", systemImage: "circle.lefthalf.filled")
                 .font(.system(size: 15, weight: .semibold))
                 .padding(.horizontal, 10)
                 .padding(.bottom, 14)

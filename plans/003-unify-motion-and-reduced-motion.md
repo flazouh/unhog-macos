@@ -62,7 +62,7 @@ static let reduced = Animation.easeOut(duration: 0.20)
 - Design tokens live in `Sources/Culprit/DesignSystem.swift`.
 - Both `InstalledMemoryMapView` and `ProcessActivityRow` already read
   `accessibilityReduceMotion`.
-- Culprit is a crisp diagnostic dashboard: no bounce, overshoot, or looping
+- Unhog is a crisp diagnostic dashboard: no bounce, overshoot, or looping
   decorative motion.
 
 ## Steps

@@ -10,7 +10,7 @@
 
 The current menu bar label changes SF Symbol, but it does not explain whether
 CPU or memory caused the state. The popover header then repeats the same
-status. Users must open Culprit before learning why it wants attention.
+status. Users must open Unhog before learning why it wants attention.
 
 ## Target
 

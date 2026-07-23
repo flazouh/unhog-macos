@@ -108,7 +108,7 @@ enum PreviewSupport {
 
         let controller = NSHostingController(rootView: PopoverView(store: store))
         let previewWindow = NSWindow(contentViewController: controller)
-        previewWindow.title = "Culprit Preview"
+        previewWindow.title = "Unhog Preview"
         previewWindow.styleMask = [.titled, .closable, .fullSizeContentView]
         previewWindow.titlebarAppearsTransparent = true
         previewWindow.isMovableByWindowBackground = true
@@ -125,7 +125,7 @@ enum PreviewSupport {
 
     private static func developerStack(rootPID: Int32) -> ProcessGroup {
         let workingDirectory =
-            "/Users/alex/Documents/fluentai.worktrees/ds-rebuild"
+            "/Users/example/Projects/sample-app"
         let processes = [
             ProcessSample(
                 identity: ProcessIdentity(
@@ -135,7 +135,7 @@ enum PreviewSupport {
                 parentPID: 1,
                 ownerUID: getuid(),
                 name: "bun",
-                executablePath: "/Users/alex/.bun/bin/bun",
+                executablePath: "/Users/example/.bun/bin/bun",
                 workingDirectory: workingDirectory,
                 cpuPercent: 24,
                 memoryBytes: 720_000_000

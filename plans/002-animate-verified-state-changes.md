@@ -17,7 +17,7 @@ content
     .transition(.opacity)
 ```
 
-The important product story—“this workload drained resources, Culprit stopped
+The important product story—“this workload drained resources, Unhog stopped
 it, then verified the change”—currently teleports.
 
 ## Target

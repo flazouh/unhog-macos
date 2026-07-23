@@ -544,7 +544,7 @@ final class AppStore: ObservableObject {
                 $0.general.startsAtLogin = isEnabled
             }
         } catch {
-            message = "Culprit could not update its login setting."
+            message = "Unhog could not update its login setting."
         }
     }
 
@@ -570,7 +570,7 @@ final class AppStore: ObservableObject {
     func copyDiagnostics() {
         let policy = currentPolicies.monitoring
         let text = """
-        Culprit diagnostics
+        Unhog diagnostics
         Sensitivity: \(preferences.monitoring.sensitivity.rawValue)
         Sampling: \(policy.pressureSamplingInterval)-\(policy.calmSamplingInterval) seconds
         Visible workloads: \(groups.count)

@@ -55,7 +55,7 @@ struct ResourceLensView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Monitoring is paused")
                     .font(.system(size: 14, weight: .semibold))
-                Text("Culprit is not sampling processes or sending alerts.")
+                Text("Unhog is not sampling processes or sending alerts.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 Button("Resume") {
@@ -414,7 +414,7 @@ struct ResourceLensView: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(CulpritTheme.attention)
 
-            Text("Culprit stopped \(receipt.stoppedProcessCount) original process\(receipt.stoppedProcessCount == 1 ? "" : "es").")
+            Text("Unhog stopped \(receipt.stoppedProcessCount) original process\(receipt.stoppedProcessCount == 1 ? "" : "es").")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 

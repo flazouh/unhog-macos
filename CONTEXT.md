@@ -1,6 +1,6 @@
-# Culprit Resource Control
+# Unhog Resource Control
 
-Culprit explains resource-heavy local workloads and lets the user stop a
+Unhog explains resource-heavy local workloads and lets the user stop a
 verified scope without pretending process relationships are more certain than
 the observed process tree.
 
