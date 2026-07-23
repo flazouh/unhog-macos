@@ -16,14 +16,26 @@ struct BranchStopControl: View {
                 Button("Force quit", action: onForceQuit)
                     .buttonStyle(.plain)
                     .foregroundStyle(CulpritTheme.destructive)
+                    .accessibilityLabel(
+                        "Force quit \(branch.displayName) branch"
+                    )
             } else if isStoppingThisBranch {
                 ProgressView()
                     .controlSize(.small)
+                    .accessibilityLabel(
+                        "Stopping \(branch.displayName) branch"
+                    )
             } else {
                 Button(stopLabel, action: onStop)
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(CulpritTheme.destructive)
+                    .frame(minWidth: 34, minHeight: 24)
+                    .contentShape(Rectangle())
                     .disabled(stopState != .idle)
+                    .accessibilityLabel(
+                        "Stop \(branch.displayName) branch and its children"
+                    )
             }
 
         case let .protected(reason):

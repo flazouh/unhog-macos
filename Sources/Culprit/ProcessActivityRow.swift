@@ -62,7 +62,21 @@ struct ProcessActivityRow: View {
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(
+                            isExpanded ? .primary : .secondary
+                        )
+                        .frame(width: 22, height: 22)
+                        .background(
+                            isExpanded
+                                ? CulpritTheme.surfaceHover
+                                : CulpritTheme.surface
+                        )
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 6,
+                                style: .continuous
+                            )
+                        )
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
                 .contentShape(Rectangle())
@@ -76,6 +90,7 @@ struct ProcessActivityRow: View {
             )
             .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             .accessibilityHint("Shows why this workload is using resources")
+            .help(isExpanded ? "Hide details" : "Show details")
 
             if isExpanded {
                 details
@@ -112,10 +127,6 @@ struct ProcessActivityRow: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ResourceSignatureView(
-                signature: signature
-            )
-
             Text(explanation.processChain.joined(separator: "  →  "))
                 .font(
                     .system(
@@ -163,8 +174,7 @@ struct ProcessActivityRow: View {
                         .buttonStyle(BorderlessActionStyle(tone: .secondary))
                         .disabled(stopState != .idle)
                     Button("Mute alerts", action: onMute)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
+                        .buttonStyle(InlineActionStyle())
                 }
             }
         case let .protected(reason):

@@ -148,10 +148,16 @@ struct PopoverView: View {
 
     private var activity: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(store.focusedGroupID == nil ? "Apps" : "Other apps")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("Select a row for details")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
 

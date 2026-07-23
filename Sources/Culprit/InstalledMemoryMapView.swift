@@ -3,8 +3,6 @@ import SwiftUI
 
 struct InstalledMemoryMapView: View {
     let composition: MemoryComposition
-    let selectedGroupID: ProcessGroupID?
-    let onSelect: (ProcessGroupID) -> Void
 
     @Environment(\.culpritReduceMotion) private var reduceMotion
     @State private var revealed = false
@@ -36,36 +34,16 @@ struct InstalledMemoryMapView: View {
                         Array(composition.segments.enumerated()),
                         id: \.element.id
                     ) { _, segment in
-                        Button {
-                            onSelect(segment.id)
-                        } label: {
-                            CulpritTheme.identityColor(
-                                for: segment.group.displayName
-                            )
-                                .opacity(
-                                    selectedGroupID == nil
-                                        || selectedGroupID == segment.id
-                                        ? 1
-                                        : 0.38
-                                )
-                        }
-                        .buttonStyle(.plain)
+                        CulpritTheme.identityColor(
+                            for: segment.group.displayName
+                        )
                         .frame(
                             width: usableWidth
                                 * segment.shareOfInstalledRAM
                         )
-                        .contentShape(Rectangle())
                         .accessibilityLabel(
                             "\(segment.group.displayName), "
                                 + MetricFormatting.memory(segment.bytes)
-                        )
-                        .accessibilityValue(
-                            selectedGroupID == segment.id
-                                ? "Selected"
-                                : "Not selected"
-                        )
-                        .accessibilityHint(
-                            "Shows this workload's details"
                         )
                     }
 

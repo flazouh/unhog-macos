@@ -10,10 +10,7 @@ struct ResourceLensView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             InstalledMemoryMapView(
-                composition: store.memoryComposition,
-                selectedGroupID: store.focusedGroupID
-                    ?? store.selectedGroupID,
-                onSelect: { store.toggleDetails(for: $0) }
+                composition: store.memoryComposition
             )
 
             content
@@ -110,17 +107,21 @@ struct ResourceLensView: View {
                 ProcessIconView(group: group, size: 32)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("\(explanation.workloadTitle) needs attention")
-                            .font(.system(size: 16, weight: .semibold))
-                            .fixedSize(horizontal: false, vertical: true)
+                    Text(explanation.workloadTitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1)
+
+                    HStack(spacing: 5) {
                         Circle()
                             .fill(CulpritTheme.destructive)
-                            .frame(width: 6, height: 6)
+                            .frame(width: 5, height: 5)
+                        Text("Needs attention")
+                            .foregroundStyle(CulpritTheme.destructive)
+                        Text("· \(workloadSubtitle(group, incident: incident))")
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Text(workloadSubtitle(group, incident: incident))
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -218,16 +219,27 @@ struct ResourceLensView: View {
                     .buttonStyle(BorderlessActionStyle(tone: .primary))
                     .disabled(store.stopState != .idle)
 
-                    evidenceButton
+                    evidenceButton(for: group)
 
-                    Button {
-                        store.muteAlerts(for: group)
+                    Menu {
+                        Button {
+                            store.muteAlerts(for: group)
+                        } label: {
+                            Label(
+                                "Mute alerts for \(group.displayName)",
+                                systemImage: "bell.slash"
+                            )
+                        }
                     } label: {
-                        Image(systemName: "bell.slash")
+                        Image(systemName: "ellipsis")
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(BorderlessActionStyle(tone: .secondary))
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .foregroundStyle(.secondary)
                     .accessibilityLabel(
-                        "Mute alerts for \(group.displayName)"
+                        "More actions for \(group.displayName)"
                     )
                 }
             }
@@ -239,8 +251,12 @@ struct ResourceLensView: View {
         }
     }
 
-    private var evidenceButton: some View {
-        Button {
+    private func evidenceButton(
+        for group: ProcessGroup
+    ) -> some View {
+        let branchCount = store.branches(for: group).count
+
+        return Button {
             withAnimation(
                 reduceMotion
                     ? CulpritTheme.motionFade
@@ -250,15 +266,25 @@ struct ResourceLensView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Text(showsEvidence ? "Hide why" : "See why")
+                Text(
+                    showsEvidence
+                        ? "Hide details"
+                        : branchCount > 0
+                            ? "Stack · \(branchCount) parts"
+                            : "Details"
+                )
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
                     .rotationEffect(.degrees(showsEvidence ? 180 : 0))
             }
         }
-        .buttonStyle(BorderlessActionStyle(tone: .secondary))
+        .buttonStyle(InlineActionStyle())
         .accessibilityValue(showsEvidence ? "Expanded" : "Collapsed")
-        .accessibilityHint("Shows the process chain and top worker")
+        .accessibilityHint(
+            branchCount > 0
+                ? "Shows process evidence and controls for parts of this stack"
+                : "Shows the process chain and top worker"
+        )
     }
 
     @ViewBuilder

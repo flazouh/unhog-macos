@@ -123,6 +123,22 @@ struct BorderlessActionStyle: ButtonStyle {
     }
 }
 
+struct InlineActionStyle: ButtonStyle {
+    var tone: Color = .secondary
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(tone)
+            .padding(.horizontal, 8)
+            .frame(minHeight: 32)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.62 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 struct SoftSurface<Content: View>: View {
     @ViewBuilder let content: Content
 

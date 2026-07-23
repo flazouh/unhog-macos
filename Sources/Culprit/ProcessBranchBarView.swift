@@ -9,146 +9,165 @@ struct ProcessBranchBarView: View {
     let onStop: (ProcessBranch) -> Void
     let onForceQuit: (ProcessBranch) -> Void
 
-    @State private var selectedID: ProcessBranchID?
+    private let visibleBranchCount = 2
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Stop one part")
-                .font(.system(size: 10, weight: .semibold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Parts of this stack")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("Stops a part + its children")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.tertiary)
+            }
+
+            branchMap
+
+            ForEach(visibleBranches) { branch in
+                branchRow(branch)
+            }
+
+            if hiddenBranches.count > 0 {
+                hiddenBranchesMenu
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var branchMap: some View {
+        GeometryReader { proxy in
+            let itemCount = branches.count + 1
+            let usableWidth = max(
+                0,
+                proxy.size.width - CGFloat(max(0, itemCount - 1))
+            )
+
+            HStack(spacing: 1) {
+                ForEach(branches) { branch in
+                    CulpritTheme.identityColor(for: branch.displayName)
+                        .frame(
+                            width: usableWidth * share(of: branch)
+                        )
+                }
+
+                CulpritTheme.remainder
+                    .frame(width: usableWidth * remainderShare)
+            }
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 3,
+                    style: .continuous
+                )
+            )
+        }
+        .frame(height: 8)
+        .accessibilityHidden(true)
+    }
+
+    private func branchRow(
+        _ branch: ProcessBranch
+    ) -> some View {
+        HStack(spacing: 6) {
+            Rectangle()
+                .fill(
+                    CulpritTheme.identityColor(
+                        for: branch.displayName
+                    )
+                )
+                .frame(width: 5, height: 12)
+
+            Text(branch.displayName)
+                .font(.system(size: 9, weight: .medium))
+                .lineLimit(1)
+
+            Text(MetricFormatting.memory(branch.memoryBytes))
+                .font(.system(size: 9, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.tertiary)
+
+            Spacer(minLength: 6)
+
+            BranchStopControl(
+                branch: branch,
+                stopState: stopState,
+                capability: capability(branch),
+                stopLabel: "Stop",
+                onStop: { onStop(branch) },
+                onForceQuit: { onForceQuit(branch) }
+            )
+        }
+        .frame(minHeight: 24)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var hiddenBranchesMenu: some View {
+        Menu {
+            ForEach(hiddenBranches) { branch in
+                hiddenBranchAction(branch)
+            }
+        } label: {
+            Text("\(hiddenBranches.count) more parts…")
+                .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
 
-            GeometryReader { proxy in
-                let itemCount = branches.count + 1
-                let usableWidth = max(
-                    0,
-                    proxy.size.width - CGFloat(max(0, itemCount - 1))
-                )
+    @ViewBuilder
+    private func hiddenBranchAction(
+        _ branch: ProcessBranch
+    ) -> some View {
+        let detail = "\(branch.displayName) · "
+            + MetricFormatting.memory(branch.memoryBytes)
+        let id = branch.asProcessGroup.id
 
-                HStack(spacing: 1) {
-                    ForEach(
-                        Array(branches.enumerated()),
-                        id: \.element.id
-                    ) { _, branch in
-                        Button {
-                            selectedID = branch.id
-                        } label: {
-                            CulpritTheme.identityColor(
-                                for: branch.displayName
-                            )
-                                .opacity(
-                                    selectedID == nil
-                                        || selectedID == branch.id
-                                        ? 1
-                                        : 0.38
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(
-                            width: usableWidth
-                                * share(of: branch)
-                        )
-                        .accessibilityLabel(
-                            "\(branch.displayName), "
-                                + MetricFormatting.memory(
-                                    branch.memoryBytes
-                                )
-                        )
-                        .accessibilityHint(
-                            "Selects this branch for stopping"
-                        )
-                        .accessibilityHidden(true)
-                    }
-
-                    CulpritTheme.remainder
-                        .frame(
-                            width: usableWidth
-                                * remainderShare
-                        )
+        switch capability(branch) {
+        case .allowed:
+            if stopState == .forceAvailable(id) {
+                Button("Force quit \(detail)") {
+                    onForceQuit(branch)
                 }
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: 3,
-                        style: .continuous
+                .accessibilityLabel(
+                    "Force quit \(branch.displayName) branch"
+                )
+            } else if stopState == .quitting(id)
+                        || stopState == .forceKilling(id) {
+                Button("Stopping \(detail)…") {}
+                    .disabled(true)
+                    .accessibilityLabel(
+                        "Stopping \(branch.displayName) branch"
                     )
+            } else {
+                Button("Stop \(detail) + children") {
+                    onStop(branch)
+                }
+                .disabled(stopState != .idle)
+                .accessibilityLabel(
+                    "Stop \(branch.displayName) branch and its children"
                 )
             }
-            .frame(height: 10)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(branches) { branch in
-                        Button {
-                            selectedID = branch.id
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 4) {
-                                    Rectangle()
-                                        .fill(
-                                            CulpritTheme.identityColor(
-                                                for: branch.displayName
-                                            )
-                                        )
-                                        .frame(width: 5, height: 5)
-                                    Text(branch.displayName)
-                                        .lineLimit(1)
-                                }
-                                Text(
-                                    MetricFormatting.memory(
-                                        branch.memoryBytes
-                                    )
-                                )
-                                .foregroundStyle(.tertiary)
-
-                                Rectangle()
-                                    .fill(
-                                        selectedID == branch.id
-                                            ? CulpritTheme.selection
-                                            : .clear
-                                    )
-                                    .frame(height: 1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 8, weight: .medium))
-                        .accessibilityValue(
-                            selectedID == branch.id
-                                ? "Selected"
-                                : "Not selected"
-                        )
-                    }
-                }
-            }
-
-            if let selected {
-                HStack(spacing: 8) {
-                    BranchStopControl(
-                        branch: selected,
-                        stopState: stopState,
-                        capability: capability(selected),
-                        stopLabel: "Stop \(selected.displayName)",
-                        onStop: { onStop(selected) },
-                        onForceQuit: { onForceQuit(selected) }
-                    )
-
-                    Text("Includes its child processes")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-        }
-        .onAppear {
-            if selectedID == nil {
-                selectedID = branches.first?.id
-            }
-        }
-        .onChange(of: branches.map(\.id)) {
-            guard selected == nil else { return }
-            selectedID = branches.first?.id
+        case let .protected(reason):
+            Button("Protected · \(detail)") {}
+                .disabled(true)
+                .help(reason)
+                .accessibilityLabel(
+                    "\(branch.displayName) branch is protected. \(reason)"
+                )
         }
     }
 
-    private var selected: ProcessBranch? {
-        branches.first { $0.id == selectedID }
+    private var visibleBranches: ArraySlice<ProcessBranch> {
+        branches.prefix(visibleBranchCount)
+    }
+
+    private var hiddenBranches: ArraySlice<ProcessBranch> {
+        branches.dropFirst(visibleBranchCount)
     }
 
     private func share(
