@@ -1,0 +1,50 @@
+name: Bug report
+description: Report incorrect behavior or a reproducible problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include private command
+        arguments, usernames, project paths, or other sensitive process data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Explain what you saw and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How can we reproduce it?
+      placeholder: |
+        1. Open Unhog…
+        2. Expand…
+        3. Observe…
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 15.5
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Unhog version or commit
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed usernames, project paths, command arguments, and secrets.
+          required: true
+

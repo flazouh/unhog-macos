@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/flazouh/unhog-macos/security/advisories/new
+    about: Report process-safety and privacy vulnerabilities privately.
+  - name: Questions and ideas
+    url: https://github.com/flazouh/unhog-macos/discussions
+    about: Ask for help or discuss an idea before opening an issue.
+
