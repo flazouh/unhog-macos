@@ -224,7 +224,7 @@ struct InstalledMemoryMapView: View {
             y: barHeight + leaderHeight
         )
         let horizontalDistance = end.x - start.x
-        let subtleBow: CGFloat = abs(horizontalDistance) < 8 ? 2 : 1
+        let subtleBow: CGFloat = abs(horizontalDistance) < 8 ? 0 : 1
 
         var path = Path()
         path.move(to: start)
