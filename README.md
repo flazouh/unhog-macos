@@ -9,6 +9,10 @@ TypeScript servers, Nx, and normal applications. CPU is measured from real
 process-time deltas; memory uses physical footprint with resident memory as a
 fallback. All data stays on the Mac.
 
+Its Resource Lens shows each major workload as a share of installed RAM. When
+something looks wrong, Culprit explains the project and process chain behind
+it, stops that verified workload, then measures what changed.
+
 ## Current MVP
 
 - Native SwiftUI `MenuBarExtra`; no Electron or web renderer.
@@ -16,7 +20,7 @@ fallback. All data stays on the Mac.
   calm and two seconds while pressure is rising. Expensive physical-footprint
   reads are limited to processes large or active enough to matter.
 - A compact 100%-of-installed-RAM map with stable app colours and an honest
-  `macOS + rest` remainder.
+  unattributed remainder.
 - CPU, RAM share, estimated battery impact, duration, process count, project
   folder attribution, parent origin, and real app icons.
 - Session-scoped process-family grouping for Playwright, TypeScript servers,
@@ -26,6 +30,8 @@ fallback. All data stays on the Mac.
 - Local notifications after 20 seconds of high load.
 - One-click normal AppKit quit for GUI apps or `SIGTERM` for developer-tool
   families, followed by an explicit force-quit option if needed.
+- Restart detection based on workload identity rather than the old PID.
+- A measured before-and-after recovery receipt.
 - PID plus process-start-time validation immediately before every signal.
 - Permanent protection for macOS system processes, other users’ processes,
   PID 0/1, and Culprit itself.
@@ -72,6 +78,8 @@ SystemProcessSampler  -> immutable ProcessSample values
 ProcessGrouper        -> understandable process families
 ResourcePressureDetector -> sustained, explainable incidents
 MemoryComposition     -> installed-RAM shares and honest remainder
+ResourceExplainer     -> project, process chain, and top worker
+RecoveryVerifier      -> recovered, restarted, or still running
 TerminationPolicy     -> pure safety decision
 SystemProcessTerminator -> revalidate identity, then signal
 AppStore              -> UI state and user intents

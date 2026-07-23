@@ -16,6 +16,8 @@ final class AppStore: ObservableObject {
     @Published private(set) var incidents: [ResourceIncident] = []
     @Published private(set) var isPreparing = true
     @Published private(set) var stopState: StopState = .idle
+    @Published private(set) var recoveryAssessment: RecoveryAssessment?
+    @Published private(set) var resolvingGroup: ProcessGroup?
     @Published private(set) var message: String?
     @Published private(set) var pendingForceName: String?
     @Published var selectedGroupID: ProcessGroupID?
@@ -25,6 +27,8 @@ final class AppStore: ObservableObject {
     private let grouper = ProcessGrouper()
     private let terminationPolicy: TerminationPolicy
     private let notifications = NotificationController()
+    private let recoveryVerifier = RecoveryVerifier()
+    private let resourceExplainer = ResourceExplainer()
     private let currentUID: UInt32
     private let appPID: Int32
     private var detector: ResourcePressureDetector
@@ -34,18 +38,27 @@ final class AppStore: ObservableObject {
     private var latestGroups: [ProcessGroup] = []
     private var latestProcessIdentities = Set<ProcessIdentity>()
     private var previousGroupMemory: [ProcessGroupID: UInt64] = [:]
+    private var stableGroupOrder: [WorkloadFingerprint: Int] = [:]
+    private var nextStableGroupOrder = 0
     private var pressureIsRising = false
     private var pendingForcePlan: TerminationPlan?
     private var pendingForceGroup: ProcessGroup?
+    private var resolutionOriginalGroup: ProcessGroup?
+    private var resolutionPreexistingMatchingGroupIDs =
+        Set<ProcessGroupID>()
+    private var resolutionStartedAt: Date?
+    private let actionsEnabled: Bool
 
     init(
         monitor: ProcessMonitor = ProcessMonitor(),
         currentUID: UInt32 = getuid(),
-        appPID: Int32 = getpid()
+        appPID: Int32 = getpid(),
+        actionsEnabled: Bool = true
     ) {
         self.monitor = monitor
         self.currentUID = currentUID
         self.appPID = appPID
+        self.actionsEnabled = actionsEnabled
         self.detector = ResourcePressureDetector(
             thresholds: .forInstalledMemory(
                 ProcessInfo.processInfo.physicalMemory
@@ -61,6 +74,30 @@ final class AppStore: ObservableObject {
 
     var activeIncident: ResourceIncident? {
         incidents.first
+    }
+
+    var focusedGroup: ProcessGroup? {
+        if let recoveryAssessment {
+            switch recoveryAssessment {
+            case .recovered:
+                return nil
+            case let .restarted(receipt):
+                return receipt.successorGroupID.flatMap(group(with:))
+            case .partial:
+                return resolvingGroup
+            }
+        }
+        if let resolvingGroup {
+            return resolvingGroup
+        }
+        if let incident = activeIncident {
+            return incident.group
+        }
+        return nil
+    }
+
+    var focusedGroupID: ProcessGroupID? {
+        focusedGroup?.id
     }
 
     var installedMemoryBytes: UInt64 {
@@ -87,8 +124,22 @@ final class AppStore: ObservableObject {
         BatteryDrainEstimate(cpuPercent: group.cpuPercent)
     }
 
+    func explanation(for group: ProcessGroup) -> ResourceExplanation {
+        resourceExplainer.explain(group)
+    }
+
     var menuBarSymbol: String {
-        switch activeIncident?.severity {
+        if let recoveryAssessment {
+            switch recoveryAssessment {
+            case .recovered:
+                return "checkmark.circle"
+            case .restarted:
+                return "arrow.clockwise.circle"
+            case .partial:
+                return "exclamationmark.circle"
+            }
+        }
+        return switch activeIncident?.severity {
         case .high:
             "exclamationmark.circle.fill"
         case .elevated:
@@ -99,6 +150,16 @@ final class AppStore: ObservableObject {
     }
 
     var menuBarAccessibilityLabel: String {
+        if let recoveryAssessment {
+            return switch recoveryAssessment {
+            case .recovered:
+                "Culprit verified that resource use recovered"
+            case .restarted:
+                "Culprit detected that the stopped workload restarted"
+            case let .partial(_, remaining):
+                "Culprit found \(remaining.count) processes still running"
+            }
+        }
         if let incident = activeIncident {
             return "\(incident.group.displayName) is creating system pressure"
         }
@@ -123,6 +184,28 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func applyPreviewFixture(
+        groups: [ProcessGroup],
+        incidents: [ResourceIncident],
+        recoveryAssessment: RecoveryAssessment? = nil,
+        resolvingGroup: ProcessGroup? = nil,
+        stopState: StopState = .idle
+    ) {
+        monitoringTask?.cancel()
+        monitoringTask = nil
+        sampleCount = 2
+        isPreparing = false
+        latestGroups = groups
+        latestProcessIdentities = Set(
+            groups.flatMap(\.processes).map(\.identity)
+        )
+        self.groups = groups
+        self.incidents = incidents
+        self.recoveryAssessment = recoveryAssessment
+        self.resolvingGroup = resolvingGroup
+        self.stopState = stopState
+    }
+
     func toggleDetails(for id: ProcessGroupID) {
         selectedGroupID = selectedGroupID == id ? nil : id
     }
@@ -132,7 +215,11 @@ final class AppStore: ObservableObject {
     }
 
     func requestQuit(_ id: ProcessGroupID) {
-        guard stopState == .idle || stopState == .forceAvailable(id),
+        guard actionsEnabled else {
+            message = "Preview only — no process was stopped."
+            return
+        }
+        guard stopState == .idle,
               let group = group(with: id) else {
             return
         }
@@ -146,34 +233,54 @@ final class AppStore: ObservableObject {
         }
 
         stopState = .quitting(id)
+        recoveryAssessment = nil
+        resolvingGroup = group
+        resolutionOriginalGroup = group
+        let fingerprint = WorkloadFingerprint(group: group)
+        resolutionPreexistingMatchingGroupIDs = Set(
+            latestGroups
+                .filter {
+                    $0.id != group.id
+                        && WorkloadFingerprint(group: $0) == fingerprint
+                }
+                .map(\.id)
+        )
+        resolutionStartedAt = Date()
         message = nil
         pendingForceName = nil
         pendingForcePlan = nil
         pendingForceGroup = nil
 
         Task {
-            let usedNormalApplicationQuit: Bool
             let signalResult: TerminationResult?
 
             if case .application = group.kind,
                let application = NSRunningApplication(
                    processIdentifier: group.id.rootPID
                ) {
-                usedNormalApplicationQuit = application.terminate()
+                _ = application.terminate()
                 signalResult = nil
             } else {
-                usedNormalApplicationQuit = false
                 signalResult = await terminator.terminate(plan, mode: .graceful)
             }
 
             try? await Task.sleep(for: .seconds(2))
             await refresh()
 
-            let remaining = plan.targets.filter {
-                latestProcessIdentities.contains($0)
-            }
+            let assessment = recoveryVerifier.assess(
+                original: group,
+                currentGroups: latestGroups,
+                currentProcessIdentities: latestProcessIdentities,
+                preexistingMatchingGroupIDs:
+                    resolutionPreexistingMatchingGroupIDs,
+                verificationDuration: resolutionStartedAt.map {
+                    Date().timeIntervalSince($0)
+                } ?? 2
+            )
+            recoveryAssessment = assessment
 
-            if !remaining.isEmpty {
+            switch assessment {
+            case let .partial(_, remaining):
                 if let refreshedGroup = refreshedGroup(
                     from: group,
                     keeping: remaining
@@ -185,34 +292,32 @@ final class AppStore: ObservableObject {
                         pendingForceGroup = refreshedGroup
                         pendingForceName = group.displayName
                         stopState = .forceAvailable(id)
-                        message = "\(remaining.count) process\(remaining.count == 1 ? "" : "es") did not quit."
                     } else {
                         stopState = .idle
                         message = "The remaining process became protected and was not stopped."
                     }
                 } else {
                     stopState = .idle
-                    message = "The original processes stopped."
+                    message = "The remaining processes could not be verified."
                 }
-            } else {
-                let restarted = latestGroups.contains {
-                    $0.id == group.id && !$0.processes.isEmpty
-                }
+
+            case .recovered:
                 stopState = .idle
-                if restarted {
-                    message = "\(group.displayName) stopped, but it restarted."
-                } else if let signalResult, !signalResult.failures.isEmpty {
+                if let signalResult, !signalResult.failures.isEmpty {
                     message = "Quit completed with \(signalResult.failures.count) warning\(signalResult.failures.count == 1 ? "" : "s")."
-                } else if case .application = group.kind, !usedNormalApplicationQuit {
-                    message = "The app did not accept a normal quit request."
-                } else {
-                    message = "The original \(group.displayName) processes stopped."
                 }
+
+            case .restarted:
+                stopState = .idle
             }
         }
     }
 
     func requestForceQuit(_ id: ProcessGroupID) {
+        guard actionsEnabled else {
+            message = "Preview only — no process was stopped."
+            return
+        }
         guard stopState == .forceAvailable(id),
               let oldPlan = pendingForcePlan,
               let oldGroup = pendingForceGroup,
@@ -239,16 +344,29 @@ final class AppStore: ObservableObject {
             let result = await terminator.terminate(plan, mode: .force)
             try? await Task.sleep(for: .milliseconds(600))
             await refresh()
-            let remaining = plan.targets.filter {
-                latestProcessIdentities.contains($0)
-            }
+            let original = resolutionOriginalGroup ?? oldGroup
+            let assessment = recoveryVerifier.assess(
+                original: original,
+                currentGroups: latestGroups,
+                currentProcessIdentities: latestProcessIdentities,
+                preexistingMatchingGroupIDs:
+                    resolutionPreexistingMatchingGroupIDs,
+                verificationDuration: resolutionStartedAt.map {
+                    Date().timeIntervalSince($0)
+                } ?? 2.6
+            )
+            recoveryAssessment = assessment
             stopState = .idle
             pendingForcePlan = nil
             pendingForceGroup = nil
             pendingForceName = nil
-            message = remaining.isEmpty && result.failures.isEmpty
-                ? "\(displayName) was force quit."
-                : "\(max(remaining.count, result.failures.count)) process\(max(remaining.count, result.failures.count) == 1 ? "" : "es") could not be stopped."
+
+            if case let .partial(_, remaining) = assessment {
+                let count = max(remaining.count, result.failures.count)
+                message = "\(count) process\(count == 1 ? "" : "es") could not be stopped."
+            } else if !result.failures.isEmpty {
+                message = "\(displayName) stopped with \(result.failures.count) warning\(result.failures.count == 1 ? "" : "s")."
+            }
         }
     }
 
@@ -264,13 +382,28 @@ final class AppStore: ObservableObject {
         message = nil
     }
 
+    func dismissRecovery() {
+        guard stopState == .idle else { return }
+        recoveryAssessment = nil
+        resolvingGroup = nil
+        resolutionOriginalGroup = nil
+        resolutionPreexistingMatchingGroupIDs = []
+        resolutionStartedAt = nil
+        message = nil
+    }
+
     func cancelPendingForceQuit() {
         guard case .forceAvailable = stopState else { return }
         stopState = .idle
         pendingForcePlan = nil
         pendingForceGroup = nil
         pendingForceName = nil
-        message = nil
+        recoveryAssessment = nil
+        resolvingGroup = nil
+        resolutionOriginalGroup = nil
+        resolutionPreexistingMatchingGroupIDs = []
+        resolutionStartedAt = nil
+        message = "Force quit cancelled. Some processes are still running."
     }
 
     func quitApplication() {
@@ -302,19 +435,35 @@ final class AppStore: ObservableObject {
             || memoryIsGrowing
             || allGroups.contains { $0.cpuPercent >= 100 }
         let incidentIDs = Set(newIncidents.map(\.id))
+        let visibleGroups = allGroups
+            .filter { $0.cpuPercent >= 0.5 || $0.memoryBytes >= 30_000_000 }
+        for group in visibleGroups.sorted(by: {
+            $0.memoryBytes > $1.memoryBytes
+        }) {
+            let fingerprint = WorkloadFingerprint(group: group)
+            if stableGroupOrder[fingerprint] == nil {
+                stableGroupOrder[fingerprint] = nextStableGroupOrder
+                nextStableGroupOrder += 1
+            }
+        }
         groups = Array(
-            allGroups
-                .filter { $0.cpuPercent >= 0.5 || $0.memoryBytes >= 30_000_000 }
+            visibleGroups
                 .sorted {
                     let leftNeedsAttention = incidentIDs.contains($0.id)
                     let rightNeedsAttention = incidentIDs.contains($1.id)
                     if leftNeedsAttention != rightNeedsAttention {
                         return leftNeedsAttention
                     }
-                    if $0.memoryBytes != $1.memoryBytes {
-                        return $0.memoryBytes > $1.memoryBytes
+                    let leftOrder = stableGroupOrder[
+                        WorkloadFingerprint(group: $0)
+                    ] ?? .max
+                    let rightOrder = stableGroupOrder[
+                        WorkloadFingerprint(group: $1)
+                    ] ?? .max
+                    if leftOrder == rightOrder {
+                        return $0.id.rootPID < $1.id.rootPID
                     }
-                    return $0.cpuPercent > $1.cpuPercent
+                    return leftOrder < rightOrder
                 }
                 .prefix(6)
         )
@@ -364,4 +513,5 @@ final class AppStore: ObservableObject {
             processes: processes
         )
     }
+
 }

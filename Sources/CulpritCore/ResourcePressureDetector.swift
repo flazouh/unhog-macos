@@ -66,6 +66,24 @@ public struct ResourceIncident: Identifiable, Hashable, Sendable {
     public let beganAt: Date
     public let duration: TimeInterval
     public let reason: String
+
+    public init(
+        id: ProcessGroupID,
+        group: ProcessGroup,
+        severity: ResourceSeverity,
+        signal: ResourceSignal,
+        beganAt: Date,
+        duration: TimeInterval,
+        reason: String
+    ) {
+        self.id = id
+        self.group = group
+        self.severity = severity
+        self.signal = signal
+        self.beganAt = beganAt
+        self.duration = duration
+        self.reason = reason
+    }
 }
 
 public struct ResourcePressureDetector: Sendable {

@@ -6,15 +6,14 @@ struct InstalledMemoryMapView: View {
     let selectedGroupID: ProcessGroupID?
     let onSelect: (ProcessGroupID) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Share of installed RAM")
+                Text("\(MetricFormatting.memory(composition.installedBytes)) installed RAM")
                     .font(.system(size: 12, weight: .semibold))
                 Spacer()
-                Text("\(MetricFormatting.memory(composition.installedBytes)) installed")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
             }
 
             GeometryReader { proxy in
@@ -28,12 +27,15 @@ struct InstalledMemoryMapView: View {
                                     selectedGroupID == nil
                                         || selectedGroupID == segment.id ? 1 : 0.48
                                 )
+                                .frame(height: 11)
                         }
                         .buttonStyle(.plain)
                         .frame(
                             width: proxy.size.width
                                 * segment.shareOfInstalledRAM
                         )
+                        .frame(maxHeight: .infinity)
+                        .contentShape(Rectangle())
                         .accessibilityLabel(
                             "\(segment.group.displayName), "
                                 + "\(MetricFormatting.ramShare(segment.shareOfInstalledRAM)) "
@@ -42,6 +44,7 @@ struct InstalledMemoryMapView: View {
                     }
 
                     CulpritTheme.remainder
+                        .frame(height: 11)
                         .frame(
                             width: proxy.size.width
                                 * composition.remainderShare
@@ -53,7 +56,13 @@ struct InstalledMemoryMapView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 11)
+            .frame(height: 26)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .spring(response: 0.42, dampingFraction: 0.86),
+                value: composition
+            )
 
             HStack(spacing: 10) {
                 ForEach(composition.segments.prefix(3)) { segment in
@@ -64,15 +73,15 @@ struct InstalledMemoryMapView: View {
                     Circle()
                         .fill(CulpritTheme.remainder)
                         .frame(width: 5, height: 5)
-                    Text("macOS + rest")
+                    Text("Unattributed")
                 }
-                .font(.system(size: 9))
+                .font(.system(size: 10))
                 .foregroundStyle(.secondary)
             }
 
             Text(footnote)
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -80,7 +89,7 @@ struct InstalledMemoryMapView: View {
         if composition.hasOverlappingProcessTotals {
             return "Some process memory overlaps, so only full shares are shown."
         }
-        return "Grey includes macOS, other processes and free memory."
+        return "Unattributed includes macOS, smaller processes and available memory."
     }
 
     private func legendItem(_ segment: AppMemorySegment) -> some View {
@@ -93,6 +102,6 @@ struct InstalledMemoryMapView: View {
             Text(MetricFormatting.ramShare(segment.shareOfInstalledRAM))
                 .foregroundStyle(.tertiary)
         }
-        .font(.system(size: 9))
+        .font(.system(size: 10))
     }
 }

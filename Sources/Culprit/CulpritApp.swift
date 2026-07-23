@@ -9,12 +9,17 @@ struct CulpritApp: App {
     init() {
         let showsPreviewWindow =
             ProcessInfo.processInfo.environment["CULPRIT_UI_PREVIEW"] == "1"
-        let store = AppStore()
+        let store = AppStore(actionsEnabled: !showsPreviewWindow)
+        _store = StateObject(wrappedValue: store)
         if showsPreviewWindow {
             PreviewSupport.store = store
+            PreviewSupport.applyFixtureIfRequested(to: store)
         }
-        _store = StateObject(wrappedValue: store)
-        store.start()
+        if ProcessInfo.processInfo.environment[
+            "CULPRIT_UI_PREVIEW_STATE"
+        ] == nil {
+            store.start()
+        }
     }
 
     var body: some Scene {

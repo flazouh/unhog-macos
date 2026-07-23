@@ -10,13 +10,11 @@ struct PopoverView: View {
 
             ScrollView {
                 VStack(spacing: 14) {
-                    hero
-                    memoryMap
+                    ResourceLensView(store: store)
                     activity
 
-                    if case let .forceAvailable(id) = store.stopState {
-                        pendingForceSurface(id: id)
-                    } else if let message = store.message {
+                    if store.recoveryAssessment == nil,
+                       let message = store.message {
                         messageRow(message)
                     }
                 }
@@ -52,83 +50,26 @@ struct PopoverView: View {
         .padding(.vertical, 13)
     }
 
-    @ViewBuilder
-    private var hero: some View {
-        if store.isPreparing {
-            preparingHero
-        } else if let incident = store.activeIncident {
-            IncidentHeroView(incident: incident, store: store)
-        } else {
-            calmHero
-        }
-    }
-
-    private var preparingHero: some View {
-        HStack(spacing: 11) {
-            ProgressView()
-                .controlSize(.small)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Measuring current resource use")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("The first useful CPU reading takes two samples.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(CulpritTheme.subtleText)
-            }
-            Spacer()
-        }
-        .padding(.vertical, 6)
-    }
-
-    private var calmHero: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Everything looks normal")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("No app has sustained unusual CPU or memory use.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(CulpritTheme.subtleText)
-            }
-            Spacer()
-        }
-        .padding(.vertical, 6)
-    }
-
-    private var memoryMap: some View {
-        InstalledMemoryMapView(
-            composition: store.memoryComposition,
-            selectedGroupID: store.selectedGroupID,
-            onSelect: { store.toggleDetails(for: $0) }
-        )
-        .padding(.vertical, 2)
-    }
-
     private var activity: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Apps")
+                Text(store.focusedGroupID == nil ? "Apps" : "Other apps")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
-                Spacer()
-                Text("RAM · CPU · battery estimate")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
 
-            if store.groups.isEmpty {
+            if displayedGroups.isEmpty {
                 Text("No active user processes to show.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 12)
             } else {
                 VStack(spacing: 4) {
-                    ForEach(store.groups) { group in
+                    ForEach(displayedGroups) { group in
                         ProcessActivityRow(
                             group: group,
+                            explanation: store.explanation(for: group),
                             ramShare: store.ramShare(for: group),
                             batteryEstimate: store.batteryEstimate(for: group),
                             needsAttention: store.incidents.contains {
@@ -145,6 +86,10 @@ struct PopoverView: View {
                 }
             }
         }
+    }
+
+    private var displayedGroups: [ProcessGroup] {
+        store.groups.filter { $0.id != store.focusedGroupID }
     }
 
     private func messageRow(_ message: String) -> some View {
@@ -167,33 +112,6 @@ struct PopoverView: View {
         .padding(12)
         .background(CulpritTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: CulpritTheme.compactRadius))
-    }
-
-    private func pendingForceSurface(id: ProcessGroupID) -> some View {
-        SoftSurface {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(store.pendingForceName ?? "Process family") did not quit")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(store.message ?? "Some original processes are still running.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 8) {
-                    Button("Force quit") {
-                        store.requestForceQuit(id)
-                    }
-                    .buttonStyle(BorderlessActionStyle(tone: .destructive))
-
-                    Button("Cancel") {
-                        store.cancelPendingForceQuit()
-                    }
-                    .buttonStyle(BorderlessActionStyle(tone: .secondary))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     private var footer: some View {
@@ -220,14 +138,30 @@ struct PopoverView: View {
 
     private var statusText: String {
         if store.isPreparing { return "Checking" }
+        if let recoveryAssessment = store.recoveryAssessment {
+            switch recoveryAssessment {
+            case .recovered:
+                return "Recovered"
+            case .restarted:
+                return "Running again"
+            case let .partial(_, remaining):
+                return "\(remaining.count) still running"
+            }
+        }
         if store.incidents.isEmpty {
             return "No unusual drain"
         }
-        return "\(store.incidents.count) need\(store.incidents.count == 1 ? "s" : "") attention"
+        return "\(store.incidents.count) app\(store.incidents.count == 1 ? "" : "s") need\(store.incidents.count == 1 ? "s" : "") attention"
     }
 
     private var statusColor: Color {
         if store.isPreparing { return .secondary }
+        if case .restarted? = store.recoveryAssessment {
+            return CulpritTheme.attention
+        }
+        if case .partial? = store.recoveryAssessment {
+            return CulpritTheme.attention
+        }
         return store.activeIncident == nil ? .secondary : CulpritTheme.attention
     }
 }

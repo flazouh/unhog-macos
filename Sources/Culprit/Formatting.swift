@@ -1,3 +1,4 @@
+import CulpritCore
 import Foundation
 
 enum MetricFormatting {
@@ -6,7 +7,8 @@ enum MetricFormatting {
     }
 
     static func memory(_ bytes: UInt64) -> String {
-        ByteCountFormatter.string(
+        guard bytes > 0 else { return "0 KB" }
+        return ByteCountFormatter.string(
             fromByteCount: Int64(clamping: bytes),
             countStyle: .memory
         )
@@ -25,5 +27,25 @@ enum MetricFormatting {
             return "\(Int(seconds.rounded())) sec"
         }
         return "\(Int((seconds / 60).rounded())) min"
+    }
+}
+
+enum WorkloadPresentation {
+    static func shortName(for group: ProcessGroup) -> String {
+        group.contextLabel?.components(separatedBy: " · ").first
+            ?? group.displayName
+    }
+
+    static func actionTitle(for group: ProcessGroup) -> String {
+        let root = group.processes.first {
+            $0.identity.pid == group.id.rootPID
+        } ?? group.processes.first
+        if root?.executablePath.contains(".app/") == true {
+            return "Quit \(group.displayName)"
+        }
+        if group.contextLabel != nil {
+            return "Stop \(shortName(for: group)) stack"
+        }
+        return "Stop \(group.displayName) group"
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ProcessActivityRow: View {
     let group: ProcessGroup
+    let explanation: ResourceExplanation
     let ramShare: Double
     let batteryEstimate: BatteryDrainEstimate
     let needsAttention: Bool
@@ -14,6 +15,7 @@ struct ProcessActivityRow: View {
     let onForceQuit: () -> Void
 
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,7 +35,7 @@ struct ProcessActivityRow: View {
 
                             if needsAttention {
                                 Text("Attention")
-                                    .font(.system(size: 8, weight: .semibold))
+                                    .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(CulpritTheme.attention)
                             }
                         }
@@ -73,6 +75,12 @@ struct ProcessActivityRow: View {
                 .padding(.vertical, 7)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(
+                "\(group.displayName), \(MetricFormatting.memory(group.memoryBytes)), "
+                    + "\(MetricFormatting.cpu(group.cpuPercent)) CPU"
+            )
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint("Shows why this workload is using resources")
 
             if isExpanded {
                 details
@@ -89,14 +97,32 @@ struct ProcessActivityRow: View {
             )
         )
         .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.16), value: isExpanded)
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.16),
+            value: isExpanded
+        )
         .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 5) {
-                ForEach(group.processes.prefix(5), id: \.identity) { process in
+                Text(explanation.processChain.joined(separator: "  →  "))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+
+                Text(
+                    "\(explanation.topWorker.name) is the top worker · "
+                        + "\(MetricFormatting.memory(explanation.topWorker.memoryBytes))"
+                )
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+
+                Text("Process details")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 3)
+
+                ForEach(group.processes.prefix(3), id: \.identity) { process in
                     HStack(spacing: 8) {
                         Circle()
                             .fill(Color.secondary.opacity(0.35))
@@ -110,8 +136,8 @@ struct ProcessActivityRow: View {
                     .font(.system(size: 10))
                 }
 
-                if group.processCount > 5 {
-                    Text("+ \(group.processCount - 5) more")
+                if group.processCount > 3 {
+                    Text("+ \(group.processCount - 3) more")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 12)
@@ -147,7 +173,7 @@ struct ProcessActivityRow: View {
 
     private var buttonTitle: String {
         if isWorking { return "Stopping…" }
-        return "Quit \(group.displayName)"
+        return WorkloadPresentation.actionTitle(for: group)
     }
 
     private var subtitle: String {
