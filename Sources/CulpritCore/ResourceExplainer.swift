@@ -23,12 +23,18 @@ public struct ResourceExplanation: Hashable, Sendable {
 public struct ResourceExplainer: Sendable {
     public init() {}
 
-    public func explain(_ group: ProcessGroup) -> ResourceExplanation {
+    public func explain(
+        _ group: ProcessGroup,
+        includesProjectContext: Bool = true
+    ) -> ResourceExplanation {
+        let contextLabel = includesProjectContext
+            ? group.contextLabel
+            : nil
         guard let topWorker = group.processes.max(by: {
             $0.memoryBytes < $1.memoryBytes
         }) else {
             return ResourceExplanation(
-                workloadTitle: group.contextLabel.map { "\($0) stack" }
+                workloadTitle: contextLabel.map { "\($0) stack" }
                     ?? group.displayName,
                 runtimeName: group.displayName,
                 processChain: [group.displayName],
@@ -48,14 +54,14 @@ public struct ResourceExplainer: Sendable {
             endingAt: topWorker,
             in: group
         )
-        if let contextLabel = group.contextLabel {
+        if let contextLabel {
             chain.insert(contextLabel, at: 0)
         }
         let hasStrongAttribution =
-            group.contextLabel != nil && chain.count > 2
+            contextLabel != nil && chain.count > 2
 
         return ResourceExplanation(
-            workloadTitle: group.contextLabel.map { "\($0) stack" }
+            workloadTitle: contextLabel.map { "\($0) stack" }
                 ?? group.displayName,
             runtimeName: group.displayName,
             processChain: chain,

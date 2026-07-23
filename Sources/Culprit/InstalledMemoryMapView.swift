@@ -6,7 +6,7 @@ struct InstalledMemoryMapView: View {
     let selectedGroupID: ProcessGroupID?
     let onSelect: (ProcessGroupID) -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.culpritReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {

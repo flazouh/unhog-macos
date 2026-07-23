@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CulpritCore
 import Foundation
+import ServiceManagement
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -20,13 +21,20 @@ final class AppStore: ObservableObject {
     @Published private(set) var resolvingGroup: ProcessGroup?
     @Published private(set) var message: String?
     @Published private(set) var pendingForceName: String?
+    @Published private(set) var pendingQuitGroup: ProcessGroup?
+    @Published private(set) var pendingForceQuitConfirmationID:
+        ProcessGroupID?
+    @Published private(set) var notificationsDenied = false
+    @Published private(set) var monitoringPausedUntil: Date?
     @Published var selectedGroupID: ProcessGroupID?
+    @Published private(set) var preferences: CulpritPreferences
 
     private let monitor: ProcessMonitor
     private let terminator: SystemProcessTerminator
     private let grouper = ProcessGrouper()
     private let terminationPolicy: TerminationPolicy
     private let notifications = NotificationController()
+    private let preferencesRepository: UserDefaultsPreferencesRepository
     private let recoveryVerifier = RecoveryVerifier()
     private let resourceExplainer = ResourceExplainer()
     private let currentUID: UInt32
@@ -43,7 +51,9 @@ final class AppStore: ObservableObject {
     private var pressureIsRising = false
     private var pendingForcePlan: TerminationPlan?
     private var pendingForceGroup: ProcessGroup?
+    private var recoveryCollapseTask: Task<Void, Never>?
     private var resolutionOriginalGroup: ProcessGroup?
+    private var resolutionIncident: ResourceIncident?
     private var resolutionPreexistingMatchingGroupIDs =
         Set<ProcessGroupID>()
     private var resolutionStartedAt: Date?
@@ -53,23 +63,29 @@ final class AppStore: ObservableObject {
         monitor: ProcessMonitor = ProcessMonitor(),
         currentUID: UInt32 = getuid(),
         appPID: Int32 = getpid(),
-        actionsEnabled: Bool = true
+        actionsEnabled: Bool = true,
+        preferencesRepository: UserDefaultsPreferencesRepository =
+            UserDefaultsPreferencesRepository()
     ) {
+        let preferences = preferencesRepository.load()
         self.monitor = monitor
         self.currentUID = currentUID
         self.appPID = appPID
         self.actionsEnabled = actionsEnabled
+        self.preferencesRepository = preferencesRepository
+        self.preferences = preferences
+        let monitoringPolicy = PreferencePolicies.make(
+            from: preferences,
+            installedMemoryBytes: ProcessInfo.processInfo.physicalMemory
+        ).monitoring
         self.detector = ResourcePressureDetector(
-            thresholds: .forInstalledMemory(
-                ProcessInfo.processInfo.physicalMemory
-            )
+            thresholds: monitoringPolicy.thresholds
         )
         self.terminator = SystemProcessTerminator(currentUID: currentUID)
         self.terminationPolicy = TerminationPolicy(
             currentUID: currentUID,
             appPID: appPID
         )
-        UserDefaults.standard.register(defaults: ["notificationsEnabled": true])
     }
 
     var activeIncident: ResourceIncident? {
@@ -125,54 +141,39 @@ final class AppStore: ObservableObject {
     }
 
     func explanation(for group: ProcessGroup) -> ResourceExplanation {
-        resourceExplainer.explain(group)
+        resourceExplainer.explain(
+            group,
+            includesProjectContext:
+                preferences.safety.showsProjectNames
+        )
     }
 
-    var menuBarSymbol: String {
-        if let recoveryAssessment {
-            switch recoveryAssessment {
-            case .recovered:
-                return "checkmark.circle"
-            case .restarted:
-                return "arrow.clockwise.circle"
-            case .partial:
-                return "exclamationmark.circle"
-            }
-        }
-        return switch activeIncident?.severity {
-        case .high:
-            "exclamationmark.circle.fill"
-        case .elevated:
-            "exclamationmark.circle"
-        case nil:
-            isPreparing ? "circle.dotted" : "circle"
-        }
+    var menuBarPresentation: MenuBarPresentation {
+        MenuBarPresentation.make(
+            phase: menuBarPhase,
+            leadingGroup: menuBarLeadingGroup,
+            installedMemoryBytes: installedMemoryBytes,
+            displayMode: preferences.general.menuBarDisplay
+        )
     }
 
-    var menuBarAccessibilityLabel: String {
-        if let recoveryAssessment {
-            return switch recoveryAssessment {
-            case .recovered:
-                "Culprit verified that resource use recovered"
-            case .restarted:
-                "Culprit detected that the stopped workload restarted"
-            case let .partial(_, remaining):
-                "Culprit found \(remaining.count) processes still running"
-            }
-        }
-        if let incident = activeIncident {
-            return "\(incident.group.displayName) is creating system pressure"
-        }
-        return isPreparing ? "Culprit is measuring system activity" : "System activity is calm"
+    var shouldReduceMotion: Bool {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            || preferences.general.motion == .reduced
+    }
+
+    var isMonitoringPaused: Bool {
+        guard let monitoringPausedUntil else { return false }
+        return monitoringPausedUntil > Date()
     }
 
     func start() {
         guard monitoringTask == nil else { return }
 
         monitoringTask = Task { [weak self] in
-            if UserDefaults.standard.bool(forKey: "notificationsEnabled"),
-               let notifications = self?.notifications {
-                await notifications.requestPermission()
+            if let self, self.preferences.notifications.isEnabled {
+                self.notificationsDenied =
+                    !(await self.notifications.requestPermission())
             }
 
             while !Task.isCancelled {
@@ -224,6 +225,26 @@ final class AppStore: ObservableObject {
             return
         }
 
+        if preferences.safety.confirmsWholeStackStop {
+            pendingQuitGroup = group
+            return
+        }
+
+        beginQuit(group)
+    }
+
+    func confirmPendingQuit() {
+        guard let group = pendingQuitGroup else { return }
+        pendingQuitGroup = nil
+        beginQuit(group)
+    }
+
+    func cancelPendingQuit() {
+        pendingQuitGroup = nil
+    }
+
+    private func beginQuit(_ group: ProcessGroup) {
+
         let plan = terminationPolicy.plan(for: group)
         guard plan.capability == .allowed else {
             if case let .protected(reason) = plan.capability {
@@ -232,10 +253,11 @@ final class AppStore: ObservableObject {
             return
         }
 
-        stopState = .quitting(id)
+        stopState = .quitting(group.id)
         recoveryAssessment = nil
         resolvingGroup = group
         resolutionOriginalGroup = group
+        resolutionIncident = incidents.first { $0.id == group.id }
         let fingerprint = WorkloadFingerprint(group: group)
         resolutionPreexistingMatchingGroupIDs = Set(
             latestGroups
@@ -250,6 +272,8 @@ final class AppStore: ObservableObject {
         pendingForceName = nil
         pendingForcePlan = nil
         pendingForceGroup = nil
+        let verificationDelay =
+            currentPolicies.monitoring.recoveryVerificationDuration
 
         Task {
             let signalResult: TerminationResult?
@@ -264,7 +288,7 @@ final class AppStore: ObservableObject {
                 signalResult = await terminator.terminate(plan, mode: .graceful)
             }
 
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(verificationDelay))
             await refresh()
 
             let assessment = recoveryVerifier.assess(
@@ -275,9 +299,9 @@ final class AppStore: ObservableObject {
                     resolutionPreexistingMatchingGroupIDs,
                 verificationDuration: resolutionStartedAt.map {
                     Date().timeIntervalSince($0)
-                } ?? 2
+                } ?? verificationDelay
             )
-            recoveryAssessment = assessment
+            await applyRecoveryAssessment(assessment)
 
             switch assessment {
             case let .partial(_, remaining):
@@ -291,7 +315,7 @@ final class AppStore: ObservableObject {
                         pendingForcePlan = refreshedPlan
                         pendingForceGroup = refreshedGroup
                         pendingForceName = group.displayName
-                        stopState = .forceAvailable(id)
+                        stopState = .forceAvailable(group.id)
                     } else {
                         stopState = .idle
                         message = "The remaining process became protected and was not stopped."
@@ -314,6 +338,21 @@ final class AppStore: ObservableObject {
     }
 
     func requestForceQuit(_ id: ProcessGroupID) {
+        guard stopState == .forceAvailable(id) else { return }
+        pendingForceQuitConfirmationID = id
+    }
+
+    func confirmPendingForceQuit() {
+        guard let id = pendingForceQuitConfirmationID else { return }
+        pendingForceQuitConfirmationID = nil
+        performForceQuit(id)
+    }
+
+    func cancelPendingForceQuitConfirmation() {
+        pendingForceQuitConfirmationID = nil
+    }
+
+    private func performForceQuit(_ id: ProcessGroupID) {
         guard actionsEnabled else {
             message = "Preview only — no process was stopped."
             return
@@ -355,7 +394,7 @@ final class AppStore: ObservableObject {
                     Date().timeIntervalSince($0)
                 } ?? 2.6
             )
-            recoveryAssessment = assessment
+            await applyRecoveryAssessment(assessment)
             stopState = .idle
             pendingForcePlan = nil
             pendingForceGroup = nil
@@ -370,13 +409,6 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func notificationSettingChanged(isEnabled: Bool) {
-        guard isEnabled else { return }
-        Task {
-            await notifications.requestPermission()
-        }
-    }
-
     func dismissMessage() {
         if case .forceAvailable = stopState { return }
         message = nil
@@ -387,13 +419,17 @@ final class AppStore: ObservableObject {
         recoveryAssessment = nil
         resolvingGroup = nil
         resolutionOriginalGroup = nil
+        resolutionIncident = nil
         resolutionPreexistingMatchingGroupIDs = []
         resolutionStartedAt = nil
         message = nil
+        recoveryCollapseTask?.cancel()
+        recoveryCollapseTask = nil
     }
 
     func cancelPendingForceQuit() {
         guard case .forceAvailable = stopState else { return }
+        pendingForceQuitConfirmationID = nil
         stopState = .idle
         pendingForcePlan = nil
         pendingForceGroup = nil
@@ -401,6 +437,7 @@ final class AppStore: ObservableObject {
         recoveryAssessment = nil
         resolvingGroup = nil
         resolutionOriginalGroup = nil
+        resolutionIncident = nil
         resolutionPreexistingMatchingGroupIDs = []
         resolutionStartedAt = nil
         message = "Force quit cancelled. Some processes are still running."
@@ -410,13 +447,134 @@ final class AppStore: ObservableObject {
         NSApp.terminate(nil)
     }
 
+    func updatePreferences(
+        _ update: (inout CulpritPreferences) -> Void
+    ) {
+        let notificationsWereEnabled =
+            preferences.notifications.isEnabled
+        var updated = preferences
+        update(&updated)
+        preferences = updated
+        preferencesRepository.save(updated)
+        detector = ResourcePressureDetector(
+            thresholds: currentPolicies.monitoring.thresholds
+        )
+
+        if !notificationsWereEnabled
+            && updated.notifications.isEnabled {
+            Task {
+                notificationsDenied =
+                    !(await notifications.requestPermission())
+            }
+        } else if !updated.notifications.isEnabled {
+            notificationsDenied = false
+        }
+    }
+
+    func setStartsAtLogin(_ isEnabled: Bool) {
+        do {
+            if isEnabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            updatePreferences {
+                $0.general.startsAtLogin = isEnabled
+            }
+        } catch {
+            message = "Culprit could not update its login setting."
+        }
+    }
+
+    func openNotificationSettings() {
+        guard let url = URL(
+            string:
+                "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+        ) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func refreshNotificationAuthorization() async {
+        notificationsDenied =
+            await notifications.permissionIsDenied()
+    }
+
+    func resetMonitoringPreferences() {
+        updatePreferences {
+            $0.monitoring = CulpritPreferences.recommended.monitoring
+        }
+    }
+
+    func copyDiagnostics() {
+        let policy = currentPolicies.monitoring
+        let text = """
+        Culprit diagnostics
+        Sensitivity: \(preferences.monitoring.sensitivity.rawValue)
+        Sampling: \(policy.pressureSamplingInterval)-\(policy.calmSamplingInterval) seconds
+        Visible workloads: \(groups.count)
+        Active incidents: \(incidents.count)
+        Installed memory: \(installedMemoryBytes) bytes
+        """
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        message = "Redacted diagnostics copied."
+    }
+
+    func pauseMonitoring(for duration: TimeInterval?) {
+        monitoringPausedUntil = duration.map {
+            Date().addingTimeInterval($0)
+        } ?? .distantFuture
+        incidents = []
+        notifiedIncidentIDs = []
+    }
+
+    func resumeMonitoring() {
+        monitoringPausedUntil = nil
+    }
+
+    func muteAlerts(for group: ProcessGroup) {
+        let identity = MutedWorkload(group: group)
+        let muted = MutedWorkload(
+            id: identity.id,
+            displayName: preferences.safety.showsProjectNames
+                ? identity.displayName
+                : group.displayName
+        )
+        updatePreferences {
+            if !$0.monitoring.mutedWorkloads.contains(where: {
+                $0.id == muted.id
+            }) {
+                $0.monitoring.mutedWorkloads.append(muted)
+            }
+        }
+        incidents.removeAll {
+            MutedWorkload(group: $0.group).id == muted.id
+        }
+    }
+
+    func unmuteAlerts(_ id: String) {
+        updatePreferences {
+            $0.monitoring.mutedWorkloads.removeAll { $0.id == id }
+        }
+    }
+
     private func refresh() async {
         let samples = await monitor.sample()
         let userSamples = samples.filter {
             $0.ownerUID == currentUID && $0.identity.pid != appPID
         }
         let allGroups = grouper.groups(from: userSamples)
-        let newIncidents = detector.evaluate(allGroups)
+        let monitoringPolicy = currentPolicies.monitoring
+        let detectedIncidents = detector.evaluate(allGroups)
+        let alertsAllowed = monitoringPolicy.alertScope == .always
+            || PowerSource.isUsingBattery
+        let newIncidents = alertsAllowed
+            ? detectedIncidents.filter {
+                !monitoringPolicy.mutedWorkloadIDs.contains(
+                    MutedWorkload(group: $0.group).id
+                )
+            }
+            : []
         let memoryIsGrowing = allGroups.contains { group in
             guard let previous = previousGroupMemory[group.id] else {
                 return false
@@ -432,8 +590,14 @@ final class AppStore: ObservableObject {
             uniqueKeysWithValues: allGroups.map { ($0.id, $0.memoryBytes) }
         )
         pressureIsRising = !newIncidents.isEmpty
-            || memoryIsGrowing
-            || allGroups.contains { $0.cpuPercent >= 100 }
+            || (
+                preferences.monitoring.watchesMemory
+                    && memoryIsGrowing
+            )
+            || (
+                preferences.monitoring.watchesCPU
+                    && allGroups.contains { $0.cpuPercent >= 100 }
+            )
         let incidentIDs = Set(newIncidents.map(\.id))
         let visibleGroups = allGroups
             .filter { $0.cpuPercent >= 0.5 || $0.memoryBytes >= 30_000_000 }
@@ -472,12 +636,23 @@ final class AppStore: ObservableObject {
         let activeIDs = Set(newIncidents.map(\.id))
         notifiedIncidentIDs.formIntersection(activeIDs)
 
-        guard UserDefaults.standard.bool(forKey: "notificationsEnabled") else {
+        let notificationPolicy = currentPolicies.notifications
+        guard notificationPolicy.isEnabled else {
             return
         }
 
-        for incident in newIncidents where notifiedIncidentIDs.insert(incident.id).inserted {
-            await notifications.send(incident)
+        for incident in newIncidents {
+            if notificationPolicy.level == .importantOnly,
+               incident.severity != .high {
+                continue
+            }
+            guard notifiedIncidentIDs.insert(incident.id).inserted else {
+                continue
+            }
+            await notifications.send(
+                incident,
+                policy: notificationPolicy
+            )
         }
     }
 
@@ -487,10 +662,22 @@ final class AppStore: ObservableObject {
     }
 
     private var nextSamplingInterval: Duration {
-        return pressureIsRising ? .seconds(2) : .seconds(5)
+        let policy = currentPolicies.monitoring
+        return .seconds(
+            pressureIsRising
+                ? policy.pressureSamplingInterval
+                : policy.calmSamplingInterval
+        )
     }
 
     private func refreshAndNextInterval() async -> Duration {
+        if let pausedUntil = monitoringPausedUntil {
+            if pausedUntil > Date() {
+                incidents = []
+                return .seconds(5)
+            }
+            monitoringPausedUntil = nil
+        }
         await refresh()
         return nextSamplingInterval
     }
@@ -512,6 +699,92 @@ final class AppStore: ObservableObject {
             origin: original.origin,
             processes: processes
         )
+    }
+
+    private var currentPolicies: PreferencePolicies {
+        PreferencePolicies.make(
+            from: preferences,
+            installedMemoryBytes: installedMemoryBytes
+        )
+    }
+
+    private var menuBarPhase: MenuBarPhase {
+        if isMonitoringPaused {
+            return .paused
+        }
+        if let recoveryAssessment {
+            switch recoveryAssessment {
+            case let .restarted(receipt):
+                return .restarted(receipt)
+            case let .partial(receipt, remaining):
+                return .partial(receipt, remainingCount: remaining.count)
+            case .recovered:
+                break
+            }
+        }
+        switch stopState {
+        case .quitting, .forceKilling:
+            return .stopping(resolutionIncident)
+        case .forceAvailable, .idle:
+            break
+        }
+        if let activeIncident {
+            return .attention(activeIncident)
+        }
+        if case let .recovered(receipt)? = recoveryAssessment {
+            return .recovered(receipt)
+        }
+        return isPreparing ? .measuring : .calm
+    }
+
+    private var menuBarLeadingGroup: ProcessGroup? {
+        switch preferences.general.menuBarDisplay {
+        case .topCPU:
+            return groups.max { $0.cpuPercent < $1.cpuPercent }
+        case .topMemory:
+            return groups.max { $0.memoryBytes < $1.memoryBytes }
+        case .adaptive, .iconOnly:
+            return focusedGroup
+        }
+    }
+
+    private func applyRecoveryAssessment(
+        _ assessment: RecoveryAssessment
+    ) async {
+        recoveryAssessment = assessment
+        recoveryCollapseTask?.cancel()
+
+        let notificationPolicy = currentPolicies.notifications
+        if notificationPolicy.isEnabled {
+            switch assessment {
+            case let .recovered(receipt)
+                where notificationPolicy.notifiesOnRecovery:
+                await notifications.sendRecovery(
+                    receipt,
+                    policy: notificationPolicy
+                )
+            case let .restarted(receipt)
+                where notificationPolicy.notifiesOnRestart:
+                await notifications.sendRestart(
+                    receipt,
+                    policy: notificationPolicy
+                )
+            default:
+                break
+            }
+        }
+
+        guard case let .recovered(receipt) = assessment else { return }
+        recoveryCollapseTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled,
+                  case let .recovered(currentReceipt) =
+                    self?.recoveryAssessment,
+                  currentReceipt == receipt else {
+                return
+            }
+            self?.dismissRecovery()
+        }
     }
 
 }

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ResourceLensView: View {
     @ObservedObject var store: AppStore
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.culpritReduceMotion) private var reduceMotion
 
     @State private var showsEvidence = false
 
@@ -25,7 +25,9 @@ struct ResourceLensView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let assessment = store.recoveryAssessment {
+        if store.isMonitoringPaused {
+            paused
+        } else if let assessment = store.recoveryAssessment {
             recovery(assessment)
         } else if let group = store.resolvingGroup,
                   store.stopState != .idle {
@@ -43,6 +45,26 @@ struct ResourceLensView: View {
         } else {
             calm
         }
+    }
+
+    private var paused: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: "pause.circle")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Monitoring is paused")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Culprit is not sampling processes or sending alerts.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Button("Resume") {
+                    store.resumeMonitoring()
+                }
+                .buttonStyle(.link)
+            }
+        }
+        .padding(.vertical, 5)
     }
 
     private var measuring: some View {
@@ -175,9 +197,7 @@ struct ResourceLensView: View {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
-                    Text(
-                        "Stopping \(WorkloadPresentation.shortName(for: group))…"
-                    )
+                    Text(stoppingTitle(group))
                         .font(.system(size: 12, weight: .medium))
                 }
                 .padding(.vertical, 6)
@@ -189,6 +209,16 @@ struct ResourceLensView: View {
                     .buttonStyle(BorderlessActionStyle(tone: .primary))
 
                     evidenceButton
+
+                    Button {
+                        store.muteAlerts(for: group)
+                    } label: {
+                        Image(systemName: "bell.slash")
+                    }
+                    .buttonStyle(BorderlessActionStyle(tone: .secondary))
+                    .accessibilityLabel(
+                        "Mute alerts for \(group.displayName)"
+                    )
                 }
             }
 
@@ -239,7 +269,7 @@ struct ResourceLensView: View {
             receiptView(
                 receipt,
                 symbol: "arrow.clockwise.circle.fill",
-                title: "\(receipt.contextLabel ?? receipt.displayName) is running again",
+                title: "\(recoveryDisplayName(receipt)) is running again",
                 detail: "A matching new \(receipt.displayName) workload appeared",
                 tone: CulpritTheme.attention
             )
@@ -382,8 +412,28 @@ struct ResourceLensView: View {
         return "\(group.displayName) + \(childCount) child process\(childCount == 1 ? "" : "es")"
     }
 
+    private func recoveryDisplayName(_ receipt: RecoveryReceipt) -> String {
+        guard store.preferences.safety.showsProjectNames else {
+            return receipt.displayName
+        }
+        return receipt.contextLabel ?? receipt.displayName
+    }
+
     private func stopActionTitle(_ group: ProcessGroup) -> String {
-        WorkloadPresentation.actionTitle(for: group)
+        WorkloadPresentation.actionTitle(
+            for: group,
+            includesProjectName:
+                store.preferences.safety.showsProjectNames
+        )
+    }
+
+    private func stoppingTitle(_ group: ProcessGroup) -> String {
+        let name = WorkloadPresentation.shortName(
+            for: group,
+            includesProjectName:
+                store.preferences.safety.showsProjectNames
+        )
+        return "Stopping \(name)…"
     }
 
     private func cpuDescription(_ cpuPercent: Double) -> String {

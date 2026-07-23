@@ -31,19 +31,26 @@ enum MetricFormatting {
 }
 
 enum WorkloadPresentation {
-    static func shortName(for group: ProcessGroup) -> String {
-        group.contextLabel?.components(separatedBy: " · ").first
+    static func shortName(
+        for group: ProcessGroup,
+        includesProjectName: Bool = true
+    ) -> String {
+        (includesProjectName ? group.contextLabel : nil)?
+            .components(separatedBy: " · ").first
             ?? group.displayName
     }
 
-    static func actionTitle(for group: ProcessGroup) -> String {
+    static func actionTitle(
+        for group: ProcessGroup,
+        includesProjectName: Bool = true
+    ) -> String {
         let root = group.processes.first {
             $0.identity.pid == group.id.rootPID
         } ?? group.processes.first
         if root?.executablePath.contains(".app/") == true {
             return "Quit \(group.displayName)"
         }
-        if group.contextLabel != nil {
+        if includesProjectName, group.contextLabel != nil {
             return "Stop \(shortName(for: group)) stack"
         }
         return "Stop \(group.displayName) group"

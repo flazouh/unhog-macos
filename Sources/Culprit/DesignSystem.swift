@@ -1,6 +1,17 @@
 import AppKit
 import SwiftUI
 
+private struct CulpritReduceMotionKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var culpritReduceMotion: Bool {
+        get { self[CulpritReduceMotionKey.self] }
+        set { self[CulpritReduceMotionKey.self] = newValue }
+    }
+}
+
 enum CulpritTheme {
     static let popoverWidth: CGFloat = 372
     static let popoverHeight: CGFloat = 500

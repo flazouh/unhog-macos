@@ -5,6 +5,35 @@ import Testing
 struct ResourceExplainerTests {
     @Test("The explanation identifies the project chain and top worker")
     func explainsDeveloperStack() {
+        let group = developerGroup()
+
+        let explanation = ResourceExplainer().explain(group)
+
+        #expect(explanation.workloadTitle == "FluentAI · ds-rebuild stack")
+        #expect(
+            explanation.processChain
+                == ["FluentAI · ds-rebuild", "bun", "esbuild"]
+        )
+        #expect(explanation.topWorker.name == "esbuild")
+        #expect(explanation.topWorker.memoryBytes == 3_000_000_000)
+        #expect(explanation.topWorker.memoryShare > 0.77)
+        #expect(explanation.confidence == .high)
+    }
+
+    @Test("Project context can be excluded from every explanation field")
+    func hidesProjectContext() {
+        let group = developerGroup()
+
+        let explanation = ResourceExplainer().explain(
+            group,
+            includesProjectContext: false
+        )
+
+        #expect(!explanation.workloadTitle.contains("FluentAI"))
+        #expect(!explanation.processChain.contains { $0.contains("FluentAI") })
+    }
+
+    private func developerGroup() -> ProcessGroup {
         let kind = ProcessFamilyKind.application("bun")
         let root = sample(
             pid: 100,
@@ -20,25 +49,13 @@ struct ResourceExplainerTests {
             memory: 3_000_000_000,
             cpu: 164
         )
-        let group = ProcessGroup(
+        return ProcessGroup(
             id: ProcessGroupID(kind: kind, rootPID: 100),
             kind: kind,
             displayName: "bun",
             origin: nil,
             processes: [root, worker]
         )
-
-        let explanation = ResourceExplainer().explain(group)
-
-        #expect(explanation.workloadTitle == "FluentAI · ds-rebuild stack")
-        #expect(
-            explanation.processChain
-                == ["FluentAI · ds-rebuild", "bun", "esbuild"]
-        )
-        #expect(explanation.topWorker.name == "esbuild")
-        #expect(explanation.topWorker.memoryBytes == 3_000_000_000)
-        #expect(explanation.topWorker.memoryShare > 0.77)
-        #expect(explanation.confidence == .high)
     }
 
     private func sample(

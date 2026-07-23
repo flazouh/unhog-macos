@@ -1,53 +1,118 @@
 import SwiftUI
 
 struct SettingsView: View {
+    private enum Section: String, CaseIterable {
+        case general = "General"
+        case monitoring = "Monitoring"
+        case notifications = "Notifications"
+        case safety = "Safety & privacy"
+        case advanced = "Advanced"
+
+        var symbol: String {
+            switch self {
+            case .general: "gearshape"
+            case .monitoring: "waveform.path.ecg"
+            case .notifications: "bell"
+            case .safety: "hand.raised"
+            case .advanced: "slider.horizontal.3"
+            }
+        }
+
+        var summary: String {
+            switch self {
+            case .general: "How Culprit appears and starts."
+            case .monitoring:
+                "Choose when sustained drain deserves attention."
+            case .notifications:
+                "Useful alerts without sample-by-sample noise."
+            case .safety: "Control prompts, not process protection."
+            case .advanced: "Power-user controls with safe polling limits."
+            }
+        }
+    }
+
     @ObservedObject var store: AppStore
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @State private var selection: Section = .general
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Culprit")
-                    .font(.system(size: 22, weight: .semibold))
-                Text("Clear alerts for unusual CPU and memory drain.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-
-            SoftSurface {
-                Toggle(isOn: $notificationsEnabled) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Sustained-load notifications")
-                            .font(.system(size: 13, weight: .medium))
-                        Text("Alert when unusual CPU or memory lasts 20 seconds.")
-                            .font(.system(size: 11))
+        HStack(spacing: 0) {
+            sidebar
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selection.rawValue)
+                            .font(.system(size: 22, weight: .semibold))
+                        Text(selection.summary)
+                            .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
+                    content
                 }
-                .toggleStyle(.switch)
-                .onChange(of: notificationsEnabled) { _, isEnabled in
-                    store.notificationSettingChanged(isEnabled: isEnabled)
-                }
+                .padding(28)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+        .frame(width: 650, height: 470)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .task {
+            await store.refreshNotificationAuthorization()
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Safety")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text("Culprit only stops processes owned by your user. macOS system processes, other users’ processes, and Culprit itself are always protected.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(CulpritTheme.subtleText)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Culprit", systemImage: "circle.lefthalf.filled")
+                .font(.system(size: 15, weight: .semibold))
+                .padding(.horizontal, 10)
+                .padding(.bottom, 14)
+
+            ForEach(Section.allCases, id: \.self) { section in
+                Button {
+                    selection = section
+                } label: {
+                    Label(section.rawValue, systemImage: section.symbol)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(
+                            selection == section
+                                ? CulpritTheme.surfaceHover
+                                : .clear
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer()
-
-            Text("Sampling: adaptive 2–5 seconds · Data stays on this Mac")
+            Text("Local by design")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
+                .padding(.horizontal, 10)
         }
-        .padding(24)
-        .frame(width: 420, height: 320)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(14)
+        .frame(width: 178)
+        .background(CulpritTheme.surface.opacity(0.45))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch selection {
+        case .general:
+            GeneralSettingsPane(store: store)
+        case .monitoring:
+            MonitoringSettingsPane(
+                store: store,
+                showAdvanced: { selection = .advanced }
+            )
+        case .notifications:
+            NotificationSettingsPane(store: store)
+        case .safety:
+            SafetySettingsPane(store: store)
+        case .advanced:
+            AdvancedSettingsPane(store: store)
+        }
     }
 }

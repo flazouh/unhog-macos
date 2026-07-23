@@ -5,15 +5,35 @@ import UserNotifications
 actor NotificationController {
     private let center = UNUserNotificationCenter.current()
 
-    func requestPermission() async {
-        _ = try? await center.requestAuthorization(options: [.alert, .sound])
+    func requestPermission() async -> Bool {
+        let settings = await center.notificationSettings()
+        if settings.authorizationStatus == .denied {
+            return false
+        }
+        if settings.authorizationStatus == .authorized
+            || settings.authorizationStatus == .provisional {
+            return true
+        }
+        return (try? await center.requestAuthorization(
+            options: [.alert, .sound]
+        )) ?? false
     }
 
-    func send(_ incident: ResourceIncident) async {
+    func permissionIsDenied() async -> Bool {
+        await center.notificationSettings().authorizationStatus == .denied
+    }
+
+    func send(
+        _ incident: ResourceIncident,
+        policy: NotificationPolicy
+    ) async {
         let content = UNMutableNotificationContent()
-        content.title = notificationTitle(for: incident)
+        content.title = notificationTitle(
+            for: incident,
+            showsWorkloadNames: policy.showsWorkloadNames
+        )
         content.body = notificationBody(for: incident)
-        content.sound = .default
+        content.sound = policy.playsSound ? .default : nil
 
         let request = UNNotificationRequest(
             identifier: notificationIdentifier(for: incident.id),
@@ -23,12 +43,60 @@ actor NotificationController {
         try? await center.add(request)
     }
 
-    private func notificationTitle(for incident: ResourceIncident) -> String {
-        switch incident.signal {
+    func sendRecovery(
+        _ receipt: RecoveryReceipt,
+        policy: NotificationPolicy
+    ) async {
+        let content = UNMutableNotificationContent()
+        content.title = policy.showsWorkloadNames
+            ? "\(receipt.displayName) recovered"
+            : "Resource use recovered"
+        let memory = ByteCountFormatter.string(
+            fromByteCount: Int64(clamping: receipt.memoryReductionBytes),
+            countStyle: .memory
+        )
+        content.body = "The workload’s measured memory fell by \(memory)."
+        content.sound = policy.playsSound ? .default : nil
+        try? await center.add(
+            UNNotificationRequest(
+                identifier: "culprit-recovery-\(receipt.originalGroupID.rootPID)",
+                content: content,
+                trigger: nil
+            )
+        )
+    }
+
+    func sendRestart(
+        _ receipt: RecoveryReceipt,
+        policy: NotificationPolicy
+    ) async {
+        let content = UNMutableNotificationContent()
+        content.title = policy.showsWorkloadNames
+            ? "\(receipt.displayName) started again"
+            : "A stopped workload started again"
+        content.body = "Culprit will not stop it again without your approval."
+        content.sound = policy.playsSound ? .default : nil
+        try? await center.add(
+            UNNotificationRequest(
+                identifier: "culprit-restart-\(receipt.originalGroupID.rootPID)",
+                content: content,
+                trigger: nil
+            )
+        )
+    }
+
+    private func notificationTitle(
+        for incident: ResourceIncident,
+        showsWorkloadNames: Bool
+    ) -> String {
+        let name = showsWorkloadNames
+            ? incident.group.displayName
+            : "A workload"
+        return switch incident.signal {
         case .memory:
-            "\(incident.group.displayName) is using unusual memory"
+            "\(name) is using unusual memory"
         case .cpu:
-            "\(incident.group.displayName) is keeping your CPU busy"
+            "\(name) is keeping your CPU busy"
         }
     }
 

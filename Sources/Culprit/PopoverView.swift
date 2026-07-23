@@ -29,11 +29,66 @@ struct PopoverView: View {
             height: CulpritTheme.popoverHeight
         )
         .background(Color(nsColor: .windowBackgroundColor))
+        .confirmationDialog(
+            "Stop this whole workload?",
+            isPresented: Binding(
+                get: { store.pendingQuitGroup != nil },
+                set: { if !$0 { store.cancelPendingQuit() } }
+            )
+        ) {
+            if let group = store.pendingQuitGroup {
+                Button(
+                    WorkloadPresentation.actionTitle(
+                        for: group,
+                        includesProjectName:
+                            store.preferences.safety.showsProjectNames
+                    )
+                ) {
+                    store.confirmPendingQuit()
+                }
+                Button("Cancel", role: .cancel) {
+                    store.cancelPendingQuit()
+                }
+            }
+        } message: {
+            if let group = store.pendingQuitGroup {
+                Text(
+                    "This will ask \(group.processCount) process"
+                        + (group.processCount == 1 ? "" : "es")
+                        + " to quit."
+                )
+            }
+        }
+        .alert(
+            "Force quit remaining processes?",
+            isPresented: Binding(
+                get: {
+                    store.pendingForceQuitConfirmationID != nil
+                },
+                set: {
+                    if !$0 {
+                        store.cancelPendingForceQuitConfirmation()
+                    }
+                }
+            )
+        ) {
+            Button("Force Quit", role: .destructive) {
+                store.confirmPendingForceQuit()
+            }
+            Button("Cancel", role: .cancel) {
+                store.cancelPendingForceQuitConfirmation()
+            }
+        } message: {
+            Text(
+                "Only the verified processes that ignored the normal quit "
+                    + "request will be force quit."
+            )
+        }
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(systemName: store.menuBarSymbol)
+            Image(systemName: store.menuBarPresentation.symbolName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(statusColor)
 
@@ -75,12 +130,15 @@ struct PopoverView: View {
                             needsAttention: store.incidents.contains {
                                 $0.id == group.id
                             },
+                            showsProjectNames:
+                                store.preferences.safety.showsProjectNames,
                             isExpanded: store.selectedGroupID == group.id,
                             stopState: store.stopState,
                             capability: store.capability(for: group),
                             onToggle: { store.toggleDetails(for: group.id) },
                             onQuit: { store.requestQuit(group.id) },
-                            onForceQuit: { store.requestForceQuit(group.id) }
+                            onForceQuit: { store.requestForceQuit(group.id) },
+                            onMute: { store.muteAlerts(for: group) }
                         )
                     }
                 }
@@ -116,6 +174,33 @@ struct PopoverView: View {
 
     private var footer: some View {
         HStack {
+            if store.isMonitoringPaused {
+                Button("Resume monitoring") {
+                    store.resumeMonitoring()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            } else {
+                Menu {
+                    Button("15 minutes") {
+                        store.pauseMonitoring(for: 15 * 60)
+                    }
+                    Button("1 hour") {
+                        store.pauseMonitoring(for: 60 * 60)
+                    }
+                    Button("Until I resume") {
+                        store.pauseMonitoring(for: nil)
+                    }
+                } label: {
+                    Label("Pause", systemImage: "pause")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
             SettingsLink {
                 Label("Settings", systemImage: "slider.horizontal.3")
             }
@@ -137,6 +222,7 @@ struct PopoverView: View {
     }
 
     private var statusText: String {
+        if store.isMonitoringPaused { return "Paused" }
         if store.isPreparing { return "Checking" }
         if let recoveryAssessment = store.recoveryAssessment {
             switch recoveryAssessment {

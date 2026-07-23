@@ -25,14 +25,32 @@ struct CulpritApp: App {
     var body: some Scene {
         MenuBarExtra {
             PopoverView(store: store)
+                .environment(
+                    \.culpritReduceMotion,
+                    store.shouldReduceMotion
+                )
         } label: {
-            Label("Culprit", systemImage: store.menuBarSymbol)
-                .accessibilityLabel(store.menuBarAccessibilityLabel)
+            let presentation = store.menuBarPresentation
+            HStack(spacing: 4) {
+                Image(systemName: presentation.symbolName)
+                if let label = presentation.compactLabel {
+                    Text(label)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .frame(width: 48, alignment: .trailing)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(presentation.accessibilityLabel)
         }
         .menuBarExtraStyle(.window)
 
         Settings {
             SettingsView(store: store)
+                .environment(
+                    \.culpritReduceMotion,
+                    store.shouldReduceMotion
+                )
         }
     }
 }

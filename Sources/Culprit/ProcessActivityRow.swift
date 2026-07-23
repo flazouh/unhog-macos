@@ -7,15 +7,17 @@ struct ProcessActivityRow: View {
     let ramShare: Double
     let batteryEstimate: BatteryDrainEstimate
     let needsAttention: Bool
+    let showsProjectNames: Bool
     let isExpanded: Bool
     let stopState: AppStore.StopState
     let capability: TerminationCapability
     let onToggle: () -> Void
     let onQuit: () -> Void
     let onForceQuit: () -> Void
+    let onMute: () -> Void
 
     @State private var isHovered = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.culpritReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -156,9 +158,14 @@ struct ProcessActivityRow: View {
                 Button("Force quit \(group.displayName)", action: onForceQuit)
                     .buttonStyle(BorderlessActionStyle(tone: .destructive))
             } else {
-                Button(buttonTitle, action: onQuit)
-                    .buttonStyle(BorderlessActionStyle(tone: .secondary))
-                    .disabled(isWorking)
+                HStack(spacing: 8) {
+                    Button(buttonTitle, action: onQuit)
+                        .buttonStyle(BorderlessActionStyle(tone: .secondary))
+                        .disabled(isWorking)
+                    Button("Mute alerts", action: onMute)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                }
             }
         case let .protected(reason):
             Label(reason, systemImage: "lock")
@@ -173,12 +180,15 @@ struct ProcessActivityRow: View {
 
     private var buttonTitle: String {
         if isWorking { return "Stopping…" }
-        return WorkloadPresentation.actionTitle(for: group)
+        return WorkloadPresentation.actionTitle(
+            for: group,
+            includesProjectName: showsProjectNames
+        )
     }
 
     private var subtitle: String {
         let count = "\(group.processCount) process\(group.processCount == 1 ? "" : "es")"
-        if let context = group.contextLabel {
+        if showsProjectNames, let context = group.contextLabel {
             return context
         }
         return group.origin ?? count
