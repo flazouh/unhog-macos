@@ -23,6 +23,9 @@ install -d "$CULPRIT_CONTENTS/MacOS"
 install -d "$CULPRIT_CONTENTS/Resources"
 install -m 755 "$CULPRIT_BUILD/release/Culprit" "$CULPRIT_CONTENTS/MacOS/Culprit"
 install -m 644 "$CULPRIT_ROOT/Support/Info.plist" "$CULPRIT_CONTENTS/Info.plist"
+cp -R \
+  "$CULPRIT_BUILD/release/Culprit_Culprit.bundle" \
+  "$CULPRIT_CONTENTS/Resources/Culprit_Culprit.bundle"
 
 codesign --force --sign - "$CULPRIT_APP"
 

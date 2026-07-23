@@ -15,7 +15,10 @@ let package = Package(
         .target(name: "CulpritCore"),
         .executableTarget(
             name: "Culprit",
-            dependencies: ["CulpritCore"]
+            dependencies: ["CulpritCore"],
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "CulpritCoreTests",

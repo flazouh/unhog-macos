@@ -23,6 +23,7 @@ it, stops that verified workload, then measures what changed.
   unattributed remainder.
 - CPU, RAM share, estimated battery impact, duration, process count, project
   folder attribution, parent origin, and real app icons.
+- Offline bundled marks for Bun, Node.js, Nx, TypeScript, and Playwright.
 - Session-scoped process-family grouping for Playwright, TypeScript servers,
   Nx, and apps. Independent jobs never share a kill target.
 - Machine-scaled sustained-load detection so short compile spikes and normal
