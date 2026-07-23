@@ -225,19 +225,19 @@ struct InstalledMemoryMapView: View {
             y: barHeight + leaderHeight
         )
         let horizontalDistance = end.x - start.x
-        let subtleBow: CGFloat = abs(horizontalDistance) < 8 ? 7 : 0
+        let subtleBow: CGFloat = abs(horizontalDistance) < 8 ? 2 : 1
 
         var path = Path()
         path.move(to: start)
         path.addCurve(
             to: end,
             control1: CGPoint(
-                x: start.x + horizontalDistance * 0.2 + subtleBow,
-                y: barHeight + leaderHeight * 0.28
+                x: start.x + horizontalDistance / 3 + subtleBow,
+                y: barHeight + leaderHeight / 3
             ),
             control2: CGPoint(
-                x: end.x - horizontalDistance * 0.2 + subtleBow,
-                y: barHeight + leaderHeight * 0.72
+                x: start.x + horizontalDistance * 2 / 3 + subtleBow,
+                y: barHeight + leaderHeight * 2 / 3
             )
         )
         return path
