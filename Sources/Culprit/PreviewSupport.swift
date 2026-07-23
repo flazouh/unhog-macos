@@ -39,6 +39,19 @@ enum PreviewSupport {
         let verifier = RecoveryVerifier()
 
         switch state {
+        case "expanded":
+            store.applyPreviewFixture(
+                groups: [original, cursor, spotify],
+                incidents: []
+            )
+            store.toggleDetails(for: original.id)
+
+        case "calm":
+            store.applyPreviewFixture(
+                groups: [original, cursor, spotify],
+                incidents: []
+            )
+
         case "recovered":
             store.applyPreviewFixture(
                 groups: [cursor, spotify],

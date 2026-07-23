@@ -11,7 +11,8 @@ struct ResourceLensView: View {
         VStack(alignment: .leading, spacing: 13) {
             InstalledMemoryMapView(
                 composition: store.memoryComposition,
-                selectedGroupID: store.focusedGroupID,
+                selectedGroupID: store.focusedGroupID
+                    ?? store.selectedGroupID,
                 onSelect: { store.toggleDetails(for: $0) }
             )
 
@@ -104,15 +105,20 @@ struct ResourceLensView: View {
     ) -> some View {
         let explanation = store.explanation(for: group)
 
-        return VStack(alignment: .leading, spacing: 11) {
+        return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 ProcessIconView(group: group, size: 32)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(explanation.workloadTitle) needs attention")
-                        .font(.system(size: 16, weight: .semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(workloadScope(group))
+                    HStack(spacing: 6) {
+                        Text("\(explanation.workloadTitle) needs attention")
+                            .font(.system(size: 16, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Circle()
+                            .fill(CulpritTheme.destructive)
+                            .frame(width: 6, height: 6)
+                    }
+                    Text(workloadSubtitle(group, incident: incident))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -121,33 +127,26 @@ struct ResourceLensView: View {
             }
 
             ResourceSignatureView(
-                signature: store.drainSignature(for: group),
-                color: CulpritTheme.appColor(for: group.displayName)
+                signature: store.drainSignature(for: group)
             )
-
-            if let incident {
-                Text(
-                    "Sustained for "
-                        + MetricFormatting.duration(incident.duration)
-                )
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
-            }
 
             if showsEvidence {
                 evidence(group: group, explanation: explanation)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .opacity.combined(
+                                with: .scale(
+                                    scale: 0.97,
+                                    anchor: .top
+                                )
+                            )
+                    )
             }
 
             action(for: group)
         }
-        .padding(.leading, 12)
-        .padding(.vertical, 4)
-        .overlay(alignment: .leading) {
-            Capsule()
-                .fill(CulpritTheme.appColor(for: group.displayName))
-                .frame(width: 3)
-        }
+        .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
     }
 
@@ -155,77 +154,48 @@ struct ResourceLensView: View {
         group: ProcessGroup,
         explanation: ResourceExplanation
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             Text(explanation.processChain.joined(separator: "  →  "))
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .lineLimit(2)
 
             Text(
-                "\(explanation.topWorker.name) holds "
+                "\(explanation.topWorker.name) · "
                     + "\(MetricFormatting.memory(explanation.topWorker.memoryBytes)) "
                     + "· \(Int((explanation.topWorker.memoryShare * 100).rounded()))% "
-                    + "of this stack’s memory"
+                    + "· \(explanation.confidence.rawValue) confidence"
             )
             .font(.system(size: 10))
             .foregroundStyle(.secondary)
 
-            Text("\(explanation.confidence.rawValue) confidence · process-tree evidence")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-
             let branches = store.branches(for: group)
             if !branches.isEmpty {
                 Divider()
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 1)
 
-                Text("STOP ONE BRANCH")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
-
-                ForEach(branches) { branch in
-                    focusedBranchRow(branch)
-                }
+                ProcessBranchBarView(
+                    parent: group,
+                    branches: branches,
+                    stopState: store.stopState,
+                    capability: { store.capability(for: $0) },
+                    onStop: { store.requestStopBranch($0) },
+                    onForceQuit: {
+                        store.requestForceQuit($0.asProcessGroup.id)
+                    }
+                )
             }
         }
-        .padding(10)
-        .background(CulpritTheme.surface)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: CulpritTheme.compactRadius,
-                style: .continuous
-            )
-        )
+        .padding(.vertical, 2)
     }
 
-    private func focusedBranchRow(
-        _ branch: ProcessBranch
-    ) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(branch.displayName)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-                Text(
-                    "\(branch.processCount) process"
-                        + (branch.processCount == 1 ? "" : "es")
-                        + " · \(MetricFormatting.memory(branch.memoryBytes))"
-                )
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-            BranchStopControl(
-                branch: branch,
-                stopState: store.stopState,
-                capability: store.capability(for: branch),
-                stopLabel: "Stop",
-                onStop: { store.requestStopBranch(branch) },
-                onForceQuit: {
-                    store.requestForceQuit(branch.asProcessGroup.id)
-                }
-            )
-        }
+    private func workloadSubtitle(
+        _ group: ProcessGroup,
+        incident: ResourceIncident?
+    ) -> String {
+        guard let incident else { return workloadScope(group) }
+        return workloadScope(group)
+            + " · "
+            + MetricFormatting.duration(incident.duration)
     }
 
     @ViewBuilder
@@ -271,12 +241,12 @@ struct ResourceLensView: View {
 
     private var evidenceButton: some View {
         Button {
-            if reduceMotion {
+            withAnimation(
+                reduceMotion
+                    ? CulpritTheme.motionFade
+                    : CulpritTheme.motionEnter
+            ) {
                 showsEvidence.toggle()
-            } else {
-                withAnimation(.easeOut(duration: 0.18)) {
-                    showsEvidence.toggle()
-                }
             }
         } label: {
             HStack(spacing: 4) {

@@ -26,10 +26,6 @@ struct ProcessActivityRow: View {
         VStack(spacing: 0) {
             Button(action: onToggle) {
                 HStack(spacing: 9) {
-                    Circle()
-                        .fill(CulpritTheme.appColor(for: group.displayName))
-                        .frame(width: 7, height: 7)
-
                     ProcessIconView(group: group, size: 27)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -39,9 +35,14 @@ struct ProcessActivityRow: View {
                                 .lineLimit(1)
 
                             if needsAttention {
-                                Text("Attention")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(CulpritTheme.attention)
+                                HStack(spacing: 3) {
+                                    Circle()
+                                        .fill(CulpritTheme.destructive)
+                                        .frame(width: 4, height: 4)
+                                    Text("draining")
+                                }
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(CulpritTheme.destructive)
                             }
                         }
 
@@ -55,12 +56,9 @@ struct ProcessActivityRow: View {
 
                     ResourceSignatureView(
                         signature: signature,
-                        color: CulpritTheme.appColor(
-                            for: group.displayName
-                        ),
                         compact: true
                     )
-                    .frame(width: 116)
+                    .frame(width: 108)
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 9, weight: .semibold))
@@ -83,19 +81,30 @@ struct ProcessActivityRow: View {
                 details
                     .padding(.horizontal, 11)
                     .padding(.bottom, 12)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .opacity.combined(
+                                with: .scale(
+                                    scale: 0.97,
+                                    anchor: .top
+                                )
+                            )
+                    )
             }
         }
-        .background(isHovered || isExpanded ? CulpritTheme.surfaceHover : .clear)
+        .background(isHovered ? CulpritTheme.surface : .clear)
         .clipShape(
             RoundedRectangle(
-                cornerRadius: CulpritTheme.compactRadius,
+                cornerRadius: 6,
                 style: .continuous
             )
         )
         .onHover { isHovered = $0 }
         .animation(
-            reduceMotion ? nil : .easeOut(duration: 0.16),
+            reduceMotion
+                ? CulpritTheme.motionFade
+                : CulpritTheme.motionEnter,
             value: isExpanded
         )
         .animation(.easeOut(duration: 0.12), value: isHovered)
@@ -104,72 +113,41 @@ struct ProcessActivityRow: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 10) {
             ResourceSignatureView(
-                signature: signature,
-                color: CulpritTheme.appColor(for: group.displayName)
+                signature: signature
             )
 
-            if !branches.isEmpty {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text("MAIN BRANCHES")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    ForEach(branches) { branch in
-                        branchRow(branch)
-                    }
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(explanation.processChain.joined(separator: "  →  "))
-                        .font(
-                            .system(
-                                size: 10,
-                                weight: .medium,
-                                design: .monospaced
-                            )
-                        )
-
-                    Text(
-                        "\(explanation.topWorker.name) is the top worker · "
-                            + MetricFormatting.memory(
-                                explanation.topWorker.memoryBytes
-                            )
+            Text(explanation.processChain.joined(separator: "  →  "))
+                .font(
+                    .system(
+                        size: 9,
+                        weight: .medium,
+                        design: .monospaced
                     )
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                )
+                .foregroundStyle(.secondary)
 
-                }
-            }
-
-            action
-        }
-    }
-
-    private func branchRow(_ branch: ProcessBranch) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(branch.displayName)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
+            if !branches.isEmpty {
+                ProcessBranchBarView(
+                    parent: group,
+                    branches: branches,
+                    stopState: stopState,
+                    capability: branchCapability,
+                    onStop: onStopBranch,
+                    onForceQuit: onForceQuitBranch
+                )
+            } else {
                 Text(
-                    "\(branch.processCount) process"
-                        + (branch.processCount == 1 ? "" : "es")
-                        + " · \(MetricFormatting.memory(branch.memoryBytes))"
+                    "\(explanation.topWorker.name) is the top worker · "
+                        + MetricFormatting.memory(
+                            explanation.topWorker.memoryBytes
+                        )
                 )
                 .font(.system(size: 9))
                 .foregroundStyle(.secondary)
             }
-            Spacer()
-            BranchStopControl(
-                branch: branch,
-                stopState: stopState,
-                capability: branchCapability(branch),
-                stopLabel: "Stop branch",
-                onStop: { onStopBranch(branch) },
-                onForceQuit: { onForceQuitBranch(branch) }
-            )
+
+            action
         }
-        .padding(.vertical, 2)
     }
 
     @ViewBuilder
