@@ -69,8 +69,7 @@ struct InstalledMemoryMapView: View {
                         .stroke(
                             CulpritTheme.identityColor(
                                 for: chip.segment.group.displayName
-                            )
-                            .opacity(0.45),
+                            ),
                             style: StrokeStyle(
                                 lineWidth: 1.35,
                                 lineCap: .round
