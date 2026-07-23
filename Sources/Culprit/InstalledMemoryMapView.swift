@@ -23,7 +23,7 @@ struct InstalledMemoryMapView: View {
                     .foregroundStyle(.secondary)
             }
 
-            VStack(spacing: 0) {
+            VStack(spacing: 5) {
                 GeometryReader { proxy in
                     let itemCount = composition.segments.count + 1
                     let usableWidth = max(
@@ -73,10 +73,10 @@ struct InstalledMemoryMapView: View {
                                     )
                             )
                     }
-                    .frame(height: 14)
+                    .frame(height: 18)
                     .clipShape(
                         RoundedRectangle(
-                            cornerRadius: 4,
+                            cornerRadius: 5,
                             style: .continuous
                         )
                     )
@@ -86,12 +86,10 @@ struct InstalledMemoryMapView: View {
                         anchor: .leading
                     )
                 }
-                .frame(height: 14)
+                .frame(height: 18)
 
-                GeometryReader { proxy in
-                    linkedLegend(size: proxy.size)
-                }
-                .frame(height: 23)
+                appKey
+                    .opacity(revealed ? 1 : 0)
             }
         }
         .onAppear {
@@ -106,80 +104,15 @@ struct InstalledMemoryMapView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func linkedLegend(
-        size: CGSize
-    ) -> some View {
-        let itemCount = composition.segments.count + 1
-        let usableWidth = max(
-            0,
-            size.width - CGFloat(max(0, itemCount - 1))
-        )
-
-        return ZStack(alignment: .top) {
-            Canvas { context, canvasSize in
-                for (index, segment) in
-                    composition.segments.enumerated()
-                {
-                    let sourceX = segmentCenterX(
-                        at: index,
-                        usableWidth: usableWidth
+    private var appKey: some View {
+        HStack(spacing: 0) {
+            ForEach(composition.segments) { segment in
+                HStack(spacing: 4) {
+                    ProcessIconView(
+                        group: segment.group,
+                        size: 14
                     )
-                    let targetX = labelCenterX(
-                        at: index,
-                        width: canvasSize.width,
-                        itemCount: itemCount
-                    )
-                    let isFocused = segment.group.id
-                        == focusedGroupID
 
-                    context.stroke(
-                        bezierLeaderPath(
-                            fromX: sourceX,
-                            toX: targetX
-                        ),
-                        with: .color(
-                            CulpritTheme.identityColor(
-                                for: segment.group.displayName
-                            )
-                            .opacity(isFocused ? 0.95 : 0.5)
-                        ),
-                        style: StrokeStyle(
-                            lineWidth: isFocused ? 1.5 : 1,
-                            lineCap: .round,
-                            lineJoin: .round
-                        )
-                    )
-                }
-
-                let remainderSourceX = remainderCenterX(
-                    usableWidth: usableWidth
-                )
-                let remainderTargetX = labelCenterX(
-                    at: itemCount - 1,
-                    width: canvasSize.width,
-                    itemCount: itemCount
-                )
-                context.stroke(
-                    bezierLeaderPath(
-                        fromX: remainderSourceX,
-                        toX: remainderTargetX
-                    ),
-                    with: .color(Color.secondary.opacity(0.24)),
-                    style: StrokeStyle(
-                        lineWidth: 1,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
-                )
-            }
-            .frame(height: 9)
-            .opacity(revealed ? 1 : 0)
-
-            HStack(spacing: 0) {
-                ForEach(
-                    Array(composition.segments.enumerated()),
-                    id: \.element.id
-                ) { _, segment in
                     Text(segment.group.displayName)
                         .font(
                             .system(
@@ -197,80 +130,23 @@ struct InstalledMemoryMapView: View {
                         )
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .center
-                        )
                 }
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+            }
 
+            HStack(spacing: 4) {
+                otherIcon(size: 14)
                 Text("Other")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: .center
-                    )
+                    .lineLimit(1)
             }
-            .offset(y: 11)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityHidden(true)
-    }
-
-    private func bezierLeaderPath(
-        fromX sourceX: CGFloat,
-        toX targetX: CGFloat
-    ) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: sourceX, y: 0))
-        path.addCurve(
-            to: CGPoint(x: targetX, y: 8),
-            control1: CGPoint(x: sourceX, y: 5.5),
-            control2: CGPoint(x: targetX, y: 2.5)
-        )
-        return path
-    }
-
-    private func segmentCenterX(
-        at index: Int,
-        usableWidth: CGFloat
-    ) -> CGFloat {
-        let precedingShare = composition.segments[..<index]
-            .reduce(CGFloat.zero) {
-                $0 + CGFloat($1.shareOfInstalledRAM)
-            }
-        let segment = composition.segments[index]
-        return usableWidth
-            * (
-                precedingShare
-                    + CGFloat(segment.shareOfInstalledRAM) / 2
-            )
-            + CGFloat(index)
-    }
-
-    private func remainderCenterX(
-        usableWidth: CGFloat
-    ) -> CGFloat {
-        let attributedShare = composition.segments
-            .reduce(CGFloat.zero) {
-                $0 + CGFloat($1.shareOfInstalledRAM)
-            }
-        return usableWidth
-            * (
-                attributedShare
-                    + CGFloat(composition.remainderShare) / 2
-            )
-            + CGFloat(composition.segments.count)
-    }
-
-    private func labelCenterX(
-        at index: Int,
-        width: CGFloat,
-        itemCount: Int
-    ) -> CGFloat {
-        guard itemCount > 0 else { return 0 }
-        return width
-            * (CGFloat(index) + 0.5)
-            / CGFloat(itemCount)
     }
 
     private func memorySegment(
@@ -282,21 +158,38 @@ struct InstalledMemoryMapView: View {
                 for: segment.group.displayName
             )
 
-            if width >= 24 {
+            if width >= 11 {
                 ViewThatFits(in: .horizontal) {
-                    Text(MetricFormatting.memory(segment.bytes))
-                        .font(
-                            .system(
-                                size: width >= 34 ? 7.5 : 7,
-                                weight: .semibold,
-                                design: .rounded
-                            )
+                    HStack(spacing: 3) {
+                        ProcessIconView(
+                            group: segment.group,
+                            size: 11
                         )
-                        .monospacedDigit()
-                        .foregroundStyle(Color.black.opacity(0.88))
-                        .lineLimit(1)
+                        Text(segment.group.displayName)
+                            .font(.system(size: 7.5, weight: .semibold))
+                        memoryValue(segment.bytes)
+                    }
+                    .foregroundStyle(Color.black.opacity(0.88))
+                    .fixedSize()
+                    .padding(.horizontal, 3)
+
+                    HStack(spacing: 3) {
+                        ProcessIconView(
+                            group: segment.group,
+                            size: 11
+                        )
+                        memoryValue(segment.bytes)
+                    }
+                    .fixedSize()
+                    .padding(.horizontal, 2)
+
+                    memoryValue(segment.bytes)
                         .fixedSize()
-                        .padding(.horizontal, width >= 34 ? 2 : 0)
+
+                    ProcessIconView(
+                        group: segment.group,
+                        size: 11
+                    )
 
                     Color.clear
                         .frame(width: 0, height: 0)
@@ -311,30 +204,80 @@ struct InstalledMemoryMapView: View {
         ZStack {
             CulpritTheme.remainder
 
-            if width >= 24 {
+            if width >= 11 {
                 ViewThatFits(in: .horizontal) {
-                    Text(
-                        MetricFormatting.memory(
-                            composition.remainderBytes
+                    HStack(spacing: 3) {
+                        otherIcon(size: 11)
+                        Text("Other")
+                            .font(
+                                .system(
+                                    size: 7.5,
+                                    weight: .medium
+                                )
+                            )
+                        memoryValue(
+                            composition.remainderBytes,
+                            foreground: .secondary
                         )
-                    )
-                    .font(
-                        .system(
-                            size: 8,
-                            weight: .medium,
-                            design: .rounded
-                        )
-                    )
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    }
                     .fixedSize()
                     .padding(.horizontal, 3)
+
+                    HStack(spacing: 3) {
+                        otherIcon(size: 11)
+                        memoryValue(
+                            composition.remainderBytes,
+                            foreground: .secondary
+                        )
+                    }
+                    .fixedSize()
+                    .padding(.horizontal, 2)
+
+                    memoryValue(
+                        composition.remainderBytes,
+                        foreground: .secondary
+                    )
+                    .fixedSize()
+
+                    otherIcon(size: 11)
 
                     Color.clear
                         .frame(width: 0, height: 0)
                 }
             }
         }
+    }
+
+    private func memoryValue(
+        _ bytes: UInt64,
+        foreground: Color = Color.black.opacity(0.88)
+    ) -> some View {
+        Text(MetricFormatting.memory(bytes))
+            .font(
+                .system(
+                    size: 7.5,
+                    weight: .semibold,
+                    design: .rounded
+                )
+            )
+            .monospacedDigit()
+            .foregroundStyle(foreground)
+            .lineLimit(1)
+    }
+
+    private func otherIcon(
+        size: CGFloat
+    ) -> some View {
+        Image(systemName: "square.grid.2x2")
+            .font(.system(size: size * 0.48, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(width: size, height: size)
+            .background(CulpritTheme.surfaceHover)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: size * 0.28,
+                    style: .continuous
+                )
+            )
     }
 }
