@@ -9,6 +9,9 @@ struct ProcessBranchBarView: View {
     let onStop: (ProcessBranch) -> Void
     let onForceQuit: (ProcessBranch) -> Void
 
+    @Environment(\.culpritReduceMotion) private var reduceMotion
+    @State private var showsAllBranches = false
+
     private let visibleBranchCount = 2
 
     var body: some View {
@@ -27,12 +30,13 @@ struct ProcessBranchBarView: View {
 
             branchMap
 
-            ForEach(visibleBranches) { branch in
+            ForEach(displayedBranches) { branch in
                 branchRow(branch)
+                    .transition(.opacity)
             }
 
-            if hiddenBranches.count > 0 {
-                hiddenBranchesMenu
+            if hasHiddenBranches {
+                branchDisclosure
             }
         }
         .accessibilityElement(children: .contain)
@@ -104,85 +108,56 @@ struct ProcessBranchBarView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var hiddenBranchesMenu: some View {
-        FluidDropdown(width: 242) {
-            Text("\(hiddenBranches.count) more parts")
-        } content: {
-            FluidDropdownSectionLabel("More parts")
-
-            ForEach(hiddenBranches) { branch in
-                hiddenBranchAction(branch)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func hiddenBranchAction(
-        _ branch: ProcessBranch
-    ) -> some View {
-        let id = branch.asProcessGroup.id
-
-        switch capability(branch) {
-        case .allowed:
-            if stopState == .forceAvailable(id) {
-                FluidDropdownAction(
-                    "Force quit \(branch.displayName)",
-                    subtitle: MetricFormatting.memory(branch.memoryBytes),
-                    systemImage: "xmark.octagon",
-                    tone: .destructive
-                ) {
-                    onForceQuit(branch)
-                }
-                .accessibilityLabel(
-                    "Force quit \(branch.displayName) branch"
-                )
-            } else if stopState == .quitting(id)
-                        || stopState == .forceKilling(id) {
-                FluidDropdownAction(
-                    "Stopping \(branch.displayName)…",
-                    subtitle: MetricFormatting.memory(branch.memoryBytes),
-                    systemImage: "hourglass",
-                    isDisabled: true
-                ) {}
-                    .accessibilityLabel(
-                        "Stopping \(branch.displayName) branch"
-                    )
+    private var branchDisclosure: some View {
+        Button {
+            if reduceMotion {
+                showsAllBranches.toggle()
             } else {
-                FluidDropdownAction(
-                    "Stop \(branch.displayName)",
-                    subtitle: "Includes children · "
-                        + MetricFormatting.memory(branch.memoryBytes),
-                    systemImage: "stop.fill",
-                    tone: .destructive,
-                    isDisabled: stopState != .idle
-                ) {
-                    onStop(branch)
+                withAnimation(CulpritTheme.motionEnter) {
+                    showsAllBranches.toggle()
                 }
-                .accessibilityLabel(
-                    "Stop \(branch.displayName) branch and its children"
-                )
             }
-
-        case let .protected(reason):
-            FluidDropdownAction(
-                branch.displayName,
-                subtitle: "Protected · \(reason)",
-                systemImage: "lock",
-                isDisabled: true
-            ) {}
-                .help(reason)
-                .accessibilityLabel(
-                    "\(branch.displayName) branch is protected. \(reason)"
+        } label: {
+            HStack(spacing: 5) {
+                Text(
+                    showsAllBranches
+                        ? "Show fewer"
+                        : "\(hiddenBranchCount) more parts"
                 )
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .rotationEffect(
+                        .degrees(showsAllBranches ? 180 : 0)
+                    )
+            }
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .frame(minHeight: 24)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            showsAllBranches
+                ? "Show fewer stack parts"
+                : "Show \(hiddenBranchCount) more stack parts"
+        )
+        .accessibilityValue(
+            showsAllBranches ? "Expanded" : "Collapsed"
+        )
     }
 
-    private var visibleBranches: ArraySlice<ProcessBranch> {
-        branches.prefix(visibleBranchCount)
+    private var displayedBranches: [ProcessBranch] {
+        showsAllBranches
+            ? branches
+            : Array(branches.prefix(visibleBranchCount))
     }
 
-    private var hiddenBranches: ArraySlice<ProcessBranch> {
-        branches.dropFirst(visibleBranchCount)
+    private var hasHiddenBranches: Bool {
+        branches.count > visibleBranchCount
+    }
+
+    private var hiddenBranchCount: Int {
+        max(0, branches.count - visibleBranchCount)
     }
 
     private func share(
