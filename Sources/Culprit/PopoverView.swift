@@ -98,6 +98,8 @@ struct PopoverView: View {
             Text(statusText)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(statusColor)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
             overflowMenu
         }
@@ -106,44 +108,53 @@ struct PopoverView: View {
     }
 
     private var overflowMenu: some View {
-        Menu {
+        FluidDropdown(width: 218) {
+            Label("Controls", systemImage: "slider.horizontal.3")
+        } content: {
+            FluidDropdownSectionLabel("Monitoring")
+
             if store.isMonitoringPaused {
-                Button("Resume monitoring") {
+                FluidDropdownAction(
+                    "Resume monitoring",
+                    systemImage: "play"
+                ) {
                     store.resumeMonitoring()
                 }
             } else {
-                Menu("Pause monitoring") {
-                    Button("For 15 minutes") {
-                        store.pauseMonitoring(for: 15 * 60)
-                    }
-                    Button("For 1 hour") {
-                        store.pauseMonitoring(for: 60 * 60)
-                    }
-                    Button("Until I resume") {
-                        store.pauseMonitoring(for: nil)
-                    }
+                FluidDropdownAction(
+                    "Pause for 15 minutes",
+                    systemImage: "pause"
+                ) {
+                    store.pauseMonitoring(for: 15 * 60)
+                }
+                FluidDropdownAction(
+                    "Pause for 1 hour",
+                    systemImage: "clock"
+                ) {
+                    store.pauseMonitoring(for: 60 * 60)
+                }
+                FluidDropdownAction(
+                    "Pause until resumed",
+                    systemImage: "pause.circle"
+                ) {
+                    store.pauseMonitoring(for: nil)
                 }
             }
 
-            SettingsLink {
-                Label("Settings…", systemImage: "gearshape")
-            }
-
             Divider()
+                .padding(.vertical, 2)
 
-            Button("Quit Culprit", role: .destructive) {
+            FluidDropdownSettingsLink()
+
+            FluidDropdownAction(
+                "Quit Culprit",
+                systemImage: "power",
+                tone: .destructive
+            ) {
                 store.quitApplication()
             }
-        } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 24, height: 24)
-                .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .foregroundStyle(.secondary)
-        .accessibilityLabel("Culprit menu")
+        .accessibilityLabel("Culprit controls")
     }
 
     private var activity: some View {
@@ -244,9 +255,10 @@ struct PopoverView: View {
             }
         }
         if store.incidents.isEmpty {
-            return "No unusual drain"
+            return "All clear"
         }
-        return "\(store.incidents.count) app\(store.incidents.count == 1 ? "" : "s") need\(store.incidents.count == 1 ? "s" : "") attention"
+        return "\(store.incidents.count) issue"
+            + (store.incidents.count == 1 ? "" : "s")
     }
 
     private var statusColor: Color {

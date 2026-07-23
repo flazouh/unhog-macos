@@ -213,33 +213,23 @@ struct ResourceLensView: View {
                 .padding(.vertical, 6)
             } else {
                 HStack(spacing: 8) {
-                    Button(stopActionTitle(group)) {
+                    Button(compactStopActionTitle(group)) {
                         store.requestQuit(group.id)
                     }
                     .buttonStyle(BorderlessActionStyle(tone: .primary))
                     .disabled(store.stopState != .idle)
+                    .accessibilityLabel(stopActionTitle(group))
 
                     evidenceButton(for: group)
 
-                    Menu {
-                        Button {
-                            store.muteAlerts(for: group)
-                        } label: {
-                            Label(
-                                "Mute alerts for \(group.displayName)",
-                                systemImage: "bell.slash"
-                            )
-                        }
+                    Button {
+                        store.muteAlerts(for: group)
                     } label: {
-                        Image(systemName: "ellipsis")
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
+                        Label("Mute", systemImage: "bell.slash")
                     }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(InlineActionStyle())
                     .accessibilityLabel(
-                        "More actions for \(group.displayName)"
+                        "Mute alerts for \(group.displayName)"
                     )
                 }
             }
@@ -270,7 +260,8 @@ struct ResourceLensView: View {
                     showsEvidence
                         ? "Hide details"
                         : branchCount > 0
-                            ? "Stack · \(branchCount) parts"
+                            ? "Stack · \(branchCount) "
+                                + (branchCount == 1 ? "part" : "parts")
                             : "Details"
                 )
                 Image(systemName: "chevron.down")
@@ -478,6 +469,17 @@ struct ResourceLensView: View {
             includesProjectName:
                 store.preferences.safety.showsProjectNames
         )
+    }
+
+    private func compactStopActionTitle(
+        _ group: ProcessGroup
+    ) -> String {
+        let root = group.processes.first {
+            $0.identity.pid == group.id.rootPID
+        } ?? group.processes.first
+        return root?.executablePath.contains(".app/") == true
+            ? "Quit app"
+            : "Stop stack"
     }
 
     private func stoppingTitle(_ group: ProcessGroup) -> String {

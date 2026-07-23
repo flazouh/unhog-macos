@@ -105,31 +105,32 @@ struct ProcessBranchBarView: View {
     }
 
     private var hiddenBranchesMenu: some View {
-        Menu {
+        FluidDropdown(width: 242) {
+            Text("\(hiddenBranches.count) more parts")
+        } content: {
+            FluidDropdownSectionLabel("More parts")
+
             ForEach(hiddenBranches) { branch in
                 hiddenBranchAction(branch)
             }
-        } label: {
-            Text("\(hiddenBranches.count) more parts…")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(.secondary)
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
     }
 
     @ViewBuilder
     private func hiddenBranchAction(
         _ branch: ProcessBranch
     ) -> some View {
-        let detail = "\(branch.displayName) · "
-            + MetricFormatting.memory(branch.memoryBytes)
         let id = branch.asProcessGroup.id
 
         switch capability(branch) {
         case .allowed:
             if stopState == .forceAvailable(id) {
-                Button("Force quit \(detail)") {
+                FluidDropdownAction(
+                    "Force quit \(branch.displayName)",
+                    subtitle: MetricFormatting.memory(branch.memoryBytes),
+                    systemImage: "xmark.octagon",
+                    tone: .destructive
+                ) {
                     onForceQuit(branch)
                 }
                 .accessibilityLabel(
@@ -137,24 +138,38 @@ struct ProcessBranchBarView: View {
                 )
             } else if stopState == .quitting(id)
                         || stopState == .forceKilling(id) {
-                Button("Stopping \(detail)…") {}
-                    .disabled(true)
+                FluidDropdownAction(
+                    "Stopping \(branch.displayName)…",
+                    subtitle: MetricFormatting.memory(branch.memoryBytes),
+                    systemImage: "hourglass",
+                    isDisabled: true
+                ) {}
                     .accessibilityLabel(
                         "Stopping \(branch.displayName) branch"
                     )
             } else {
-                Button("Stop \(detail) + children") {
+                FluidDropdownAction(
+                    "Stop \(branch.displayName)",
+                    subtitle: "Includes children · "
+                        + MetricFormatting.memory(branch.memoryBytes),
+                    systemImage: "stop.fill",
+                    tone: .destructive,
+                    isDisabled: stopState != .idle
+                ) {
                     onStop(branch)
                 }
-                .disabled(stopState != .idle)
                 .accessibilityLabel(
                     "Stop \(branch.displayName) branch and its children"
                 )
             }
 
         case let .protected(reason):
-            Button("Protected · \(detail)") {}
-                .disabled(true)
+            FluidDropdownAction(
+                branch.displayName,
+                subtitle: "Protected · \(reason)",
+                systemImage: "lock",
+                isDisabled: true
+            ) {}
                 .help(reason)
                 .accessibilityLabel(
                     "\(branch.displayName) branch is protected. \(reason)"
