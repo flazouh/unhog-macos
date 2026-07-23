@@ -120,29 +120,22 @@ struct ResourceLensView: View {
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(
-                    "\(MetricFormatting.memory(group.memoryBytes)) · "
-                        + "\(MetricFormatting.ramShare(store.ramShare(for: group))) "
-                        + "of installed RAM"
-                )
-                .font(.system(size: 13, weight: .semibold))
-                .monospacedDigit()
+            ResourceSignatureView(
+                signature: store.drainSignature(for: group),
+                color: CulpritTheme.appColor(for: group.displayName)
+            )
 
-                Text(cpuDescription(group.cpuPercent))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-
+            if let incident {
                 Text(
-                    "\(batteryDescription(store.batteryEstimate(for: group)))"
-                        + durationSuffix(incident)
+                    "Sustained for "
+                        + MetricFormatting.duration(incident.duration)
                 )
-                .font(.system(size: 11))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
             }
 
             if showsEvidence {
-                evidence(explanation)
+                evidence(group: group, explanation: explanation)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -159,7 +152,8 @@ struct ResourceLensView: View {
     }
 
     private func evidence(
-        _ explanation: ResourceExplanation
+        group: ProcessGroup,
+        explanation: ResourceExplanation
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(explanation.processChain.joined(separator: "  →  "))
@@ -178,6 +172,20 @@ struct ResourceLensView: View {
             Text("\(explanation.confidence.rawValue) confidence · process-tree evidence")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
+
+            let branches = store.branches(for: group)
+            if !branches.isEmpty {
+                Divider()
+                    .padding(.vertical, 2)
+
+                Text("STOP ONE BRANCH")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                ForEach(branches) { branch in
+                    focusedBranchRow(branch)
+                }
+            }
         }
         .padding(10)
         .background(CulpritTheme.surface)
@@ -187,6 +195,37 @@ struct ResourceLensView: View {
                 style: .continuous
             )
         )
+    }
+
+    private func focusedBranchRow(
+        _ branch: ProcessBranch
+    ) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(branch.displayName)
+                    .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+                Text(
+                    "\(branch.processCount) process"
+                        + (branch.processCount == 1 ? "" : "es")
+                        + " · \(MetricFormatting.memory(branch.memoryBytes))"
+                )
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+            BranchStopControl(
+                branch: branch,
+                stopState: store.stopState,
+                capability: store.capability(for: branch),
+                stopLabel: "Stop",
+                onStop: { store.requestStopBranch(branch) },
+                onForceQuit: {
+                    store.requestForceQuit(branch.asProcessGroup.id)
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -207,6 +246,7 @@ struct ResourceLensView: View {
                         store.requestQuit(group.id)
                     }
                     .buttonStyle(BorderlessActionStyle(tone: .primary))
+                    .disabled(store.stopState != .idle)
 
                     evidenceButton
 
@@ -260,8 +300,8 @@ struct ResourceLensView: View {
             receiptView(
                 receipt,
                 symbol: "checkmark.circle.fill",
-                title: "Back to normal",
-                detail: "Stopped \(receipt.stoppedProcessCount) process\(receipt.stoppedProcessCount == 1 ? "" : "es") safely",
+                title: recoveredTitle(receipt),
+                detail: recoveredDetail(receipt),
                 tone: .secondary
             )
 
@@ -324,7 +364,9 @@ struct ResourceLensView: View {
     ) -> some View {
         HStack(spacing: 10) {
             comparisonMetric(
-                label: "Stack memory",
+                label: receipt.scope == .branch
+                    ? "Branch memory"
+                    : "Stack memory",
                 before: MetricFormatting.memory(receipt.before.memoryBytes),
                 after: MetricFormatting.memory(receipt.after.memoryBytes)
             )
@@ -419,6 +461,21 @@ struct ResourceLensView: View {
         return receipt.contextLabel ?? receipt.displayName
     }
 
+    private func recoveredTitle(_ receipt: RecoveryReceipt) -> String {
+        receipt.scope == .branch
+            ? "\(receipt.displayName) stopped"
+            : "Back to normal"
+    }
+
+    private func recoveredDetail(_ receipt: RecoveryReceipt) -> String {
+        if receipt.scope == .branch {
+            return "The rest of the workload is still running"
+        }
+        return "Stopped \(receipt.stoppedProcessCount) process"
+            + (receipt.stoppedProcessCount == 1 ? "" : "es")
+            + " safely"
+    }
+
     private func stopActionTitle(_ group: ProcessGroup) -> String {
         WorkloadPresentation.actionTitle(
             for: group,
@@ -436,33 +493,4 @@ struct ResourceLensView: View {
         return "Stopping \(name)…"
     }
 
-    private func cpuDescription(_ cpuPercent: Double) -> String {
-        guard cpuPercent >= 10 else {
-            return "\(MetricFormatting.cpu(cpuPercent)) CPU"
-        }
-        let cores = cpuPercent / 100
-        let displayedCores = (cores * 10).rounded() / 10
-        let unit = displayedCores == 1 ? "core" : "cores"
-        return "\(MetricFormatting.cpu(cpuPercent)) CPU · about \(String(format: "%.1f", displayedCores)) \(unit)"
-    }
-
-    private func batteryDescription(
-        _ estimate: BatteryDrainEstimate
-    ) -> String {
-        switch estimate {
-        case .low:
-            "Battery drain looks low"
-        case .elevated:
-            "Battery drain may be elevated"
-        case .high:
-            "Battery drain likely high"
-        }
-    }
-
-    private func durationSuffix(
-        _ incident: ResourceIncident?
-    ) -> String {
-        guard let incident else { return "" }
-        return " · sustained for \(MetricFormatting.duration(incident.duration))"
-    }
 }

@@ -21,8 +21,6 @@ struct PopoverView: View {
                 .padding(.horizontal, CulpritTheme.pagePadding)
                 .padding(.bottom, 14)
             }
-
-            footer
         }
         .frame(
             width: CulpritTheme.popoverWidth,
@@ -100,9 +98,52 @@ struct PopoverView: View {
             Text(statusText)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(statusColor)
+
+            overflowMenu
         }
         .padding(.horizontal, CulpritTheme.pagePadding)
-        .padding(.vertical, 13)
+        .padding(.vertical, 11)
+    }
+
+    private var overflowMenu: some View {
+        Menu {
+            if store.isMonitoringPaused {
+                Button("Resume monitoring") {
+                    store.resumeMonitoring()
+                }
+            } else {
+                Menu("Pause monitoring") {
+                    Button("For 15 minutes") {
+                        store.pauseMonitoring(for: 15 * 60)
+                    }
+                    Button("For 1 hour") {
+                        store.pauseMonitoring(for: 60 * 60)
+                    }
+                    Button("Until I resume") {
+                        store.pauseMonitoring(for: nil)
+                    }
+                }
+            }
+
+            SettingsLink {
+                Label("Settings…", systemImage: "gearshape")
+            }
+
+            Divider()
+
+            Button("Quit Culprit", role: .destructive) {
+                store.quitApplication()
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 12, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .foregroundStyle(.secondary)
+        .accessibilityLabel("Culprit menu")
     }
 
     private var activity: some View {
@@ -125,8 +166,8 @@ struct PopoverView: View {
                         ProcessActivityRow(
                             group: group,
                             explanation: store.explanation(for: group),
-                            ramShare: store.ramShare(for: group),
-                            batteryEstimate: store.batteryEstimate(for: group),
+                            signature: store.drainSignature(for: group),
+                            branches: store.branches(for: group),
                             needsAttention: store.incidents.contains {
                                 $0.id == group.id
                             },
@@ -138,6 +179,17 @@ struct PopoverView: View {
                             onToggle: { store.toggleDetails(for: group.id) },
                             onQuit: { store.requestQuit(group.id) },
                             onForceQuit: { store.requestForceQuit(group.id) },
+                            branchCapability: {
+                                store.capability(for: $0)
+                            },
+                            onStopBranch: {
+                                store.requestStopBranch($0)
+                            },
+                            onForceQuitBranch: {
+                                store.requestForceQuit(
+                                    $0.asProcessGroup.id
+                                )
+                            },
                             onMute: { store.muteAlerts(for: group) }
                         )
                     }
@@ -170,55 +222,6 @@ struct PopoverView: View {
         .padding(12)
         .background(CulpritTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: CulpritTheme.compactRadius))
-    }
-
-    private var footer: some View {
-        HStack {
-            if store.isMonitoringPaused {
-                Button("Resume monitoring") {
-                    store.resumeMonitoring()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-            } else {
-                Menu {
-                    Button("15 minutes") {
-                        store.pauseMonitoring(for: 15 * 60)
-                    }
-                    Button("1 hour") {
-                        store.pauseMonitoring(for: 60 * 60)
-                    }
-                    Button("Until I resume") {
-                        store.pauseMonitoring(for: nil)
-                    }
-                } label: {
-                    Label("Pause", systemImage: "pause")
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            SettingsLink {
-                Label("Settings", systemImage: "slider.horizontal.3")
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-
-            Spacer()
-
-            Button("Quit Culprit") {
-                store.quitApplication()
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-        }
-        .font(.system(size: 11))
-        .padding(.horizontal, CulpritTheme.pagePadding)
-        .padding(.vertical, 11)
-        .background(CulpritTheme.surface.opacity(0.65))
     }
 
     private var statusText: String {

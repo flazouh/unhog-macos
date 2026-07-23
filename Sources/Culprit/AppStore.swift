@@ -36,6 +36,8 @@ final class AppStore: ObservableObject {
     private let notifications = NotificationController()
     private let preferencesRepository: UserDefaultsPreferencesRepository
     private let recoveryVerifier = RecoveryVerifier()
+    private let branchRecoveryVerifier = BranchRecoveryVerifier()
+    private let branchResolver = ProcessBranchResolver()
     private let resourceExplainer = ResourceExplainer()
     private let currentUID: UInt32
     private let appPID: Int32
@@ -53,6 +55,8 @@ final class AppStore: ObservableObject {
     private var pendingForceGroup: ProcessGroup?
     private var recoveryCollapseTask: Task<Void, Never>?
     private var resolutionOriginalGroup: ProcessGroup?
+    private var resolutionBranch: ProcessBranch?
+    private var resolutionPreexistingBranchIDs = Set<ProcessBranchID>()
     private var resolutionIncident: ResourceIncident?
     private var resolutionPreexistingMatchingGroupIDs =
         Set<ProcessGroupID>()
@@ -98,7 +102,8 @@ final class AppStore: ObservableObject {
             case .recovered:
                 return nil
             case let .restarted(receipt):
-                return receipt.successorGroupID.flatMap(group(with:))
+                return resolvingGroup
+                    ?? receipt.successorGroupID.flatMap(group(with:))
             case .partial:
                 return resolvingGroup
             }
@@ -140,6 +145,30 @@ final class AppStore: ObservableObject {
         BatteryDrainEstimate(cpuPercent: group.cpuPercent)
     }
 
+    func drainSignature(for group: ProcessGroup) -> DrainSignature {
+        let signal = incidents.first { $0.id == group.id }?.signal
+        let coreCount = max(1, ProcessInfo.processInfo.processorCount)
+        let cpuShare = min(
+            1,
+            group.cpuPercent / 100 / Double(coreCount)
+        )
+        return DrainSignature(
+            group: group,
+            primarySignal: signal
+                ?? (ramShare(for: group) >= cpuShare ? .memory : .cpu),
+            installedMemoryBytes: installedMemoryBytes,
+            logicalCoreCount: coreCount
+        )
+    }
+
+    func branches(for group: ProcessGroup) -> [ProcessBranch] {
+        branchResolver.visibleBranches(in: group)
+    }
+
+    func capability(for branch: ProcessBranch) -> TerminationCapability {
+        terminationPolicy.plan(for: branch).capability
+    }
+
     func explanation(for group: ProcessGroup) -> ResourceExplanation {
         resourceExplainer.explain(
             group,
@@ -155,6 +184,10 @@ final class AppStore: ObservableObject {
             installedMemoryBytes: installedMemoryBytes,
             displayMode: preferences.general.menuBarDisplay
         )
+    }
+
+    var menuBarDrainSignature: DrainSignature? {
+        menuBarLeadingGroup.map(drainSignature(for:))
     }
 
     var shouldReduceMotion: Bool {
@@ -233,6 +266,15 @@ final class AppStore: ObservableObject {
         beginQuit(group)
     }
 
+    func requestStopBranch(_ branch: ProcessBranch) {
+        guard actionsEnabled else {
+            message = "Preview only — no process was stopped."
+            return
+        }
+        guard stopState == .idle else { return }
+        beginQuit(branch.asProcessGroup, branch: branch)
+    }
+
     func confirmPendingQuit() {
         guard let group = pendingQuitGroup else { return }
         pendingQuitGroup = nil
@@ -243,9 +285,13 @@ final class AppStore: ObservableObject {
         pendingQuitGroup = nil
     }
 
-    private func beginQuit(_ group: ProcessGroup) {
+    private func beginQuit(
+        _ group: ProcessGroup,
+        branch: ProcessBranch? = nil
+    ) {
 
-        let plan = terminationPolicy.plan(for: group)
+        let plan = branch.map { terminationPolicy.plan(for: $0) }
+            ?? terminationPolicy.plan(for: group)
         guard plan.capability == .allowed else {
             if case let .protected(reason) = plan.capability {
                 message = reason
@@ -257,7 +303,24 @@ final class AppStore: ObservableObject {
         recoveryAssessment = nil
         resolvingGroup = group
         resolutionOriginalGroup = group
-        resolutionIncident = incidents.first { $0.id == group.id }
+        resolutionBranch = branch
+        resolutionIncident = branch.flatMap { selected in
+            incidents.first { $0.id == selected.id.workloadID }
+        } ?? incidents.first { $0.id == group.id }
+        if let branch,
+           let workload = self.group(with: branch.id.workloadID) {
+            resolutionPreexistingBranchIDs = Set(
+                branchResolver.visibleBranches(in: workload)
+                    .filter {
+                        $0.id != branch.id
+                            && ProcessBranchFingerprint(branch: $0)
+                                == ProcessBranchFingerprint(branch: branch)
+                    }
+                    .map(\.id)
+            )
+        } else {
+            resolutionPreexistingBranchIDs = []
+        }
         let fingerprint = WorkloadFingerprint(group: group)
         resolutionPreexistingMatchingGroupIDs = Set(
             latestGroups
@@ -278,7 +341,8 @@ final class AppStore: ObservableObject {
         Task {
             let signalResult: TerminationResult?
 
-            if case .application = group.kind,
+            if branch == nil,
+               case .application = group.kind,
                let application = NSRunningApplication(
                    processIdentifier: group.id.rootPID
                ) {
@@ -291,12 +355,9 @@ final class AppStore: ObservableObject {
             try? await Task.sleep(for: .seconds(verificationDelay))
             await refresh()
 
-            let assessment = recoveryVerifier.assess(
+            let assessment = assessRecovery(
                 original: group,
-                currentGroups: latestGroups,
-                currentProcessIdentities: latestProcessIdentities,
-                preexistingMatchingGroupIDs:
-                    resolutionPreexistingMatchingGroupIDs,
+                branch: branch,
                 verificationDuration: resolutionStartedAt.map {
                     Date().timeIntervalSince($0)
                 } ?? verificationDelay
@@ -384,12 +445,9 @@ final class AppStore: ObservableObject {
             try? await Task.sleep(for: .milliseconds(600))
             await refresh()
             let original = resolutionOriginalGroup ?? oldGroup
-            let assessment = recoveryVerifier.assess(
+            let assessment = assessRecovery(
                 original: original,
-                currentGroups: latestGroups,
-                currentProcessIdentities: latestProcessIdentities,
-                preexistingMatchingGroupIDs:
-                    resolutionPreexistingMatchingGroupIDs,
+                branch: resolutionBranch,
                 verificationDuration: resolutionStartedAt.map {
                     Date().timeIntervalSince($0)
                 } ?? 2.6
@@ -419,6 +477,8 @@ final class AppStore: ObservableObject {
         recoveryAssessment = nil
         resolvingGroup = nil
         resolutionOriginalGroup = nil
+        resolutionBranch = nil
+        resolutionPreexistingBranchIDs = []
         resolutionIncident = nil
         resolutionPreexistingMatchingGroupIDs = []
         resolutionStartedAt = nil
@@ -437,6 +497,8 @@ final class AppStore: ObservableObject {
         recoveryAssessment = nil
         resolvingGroup = nil
         resolutionOriginalGroup = nil
+        resolutionBranch = nil
+        resolutionPreexistingBranchIDs = []
         resolutionIncident = nil
         resolutionPreexistingMatchingGroupIDs = []
         resolutionStartedAt = nil
@@ -699,6 +761,40 @@ final class AppStore: ObservableObject {
             origin: original.origin,
             processes: processes
         )
+    }
+
+    private func assessRecovery(
+        original: ProcessGroup,
+        branch: ProcessBranch?,
+        verificationDuration: TimeInterval
+    ) -> RecoveryAssessment {
+        guard let branch else {
+            return recoveryVerifier.assess(
+                original: original,
+                currentGroups: latestGroups,
+                currentProcessIdentities: latestProcessIdentities,
+                preexistingMatchingGroupIDs:
+                    resolutionPreexistingMatchingGroupIDs,
+                verificationDuration: verificationDuration
+            )
+        }
+
+        let assessment = branchRecoveryVerifier.assess(
+            original: branch,
+            currentGroups: latestGroups,
+            currentProcessIdentities: latestProcessIdentities,
+            preexistingMatchingBranchIDs:
+                resolutionPreexistingBranchIDs,
+            verificationDuration: verificationDuration
+        )
+        if case let .restarted(receipt) = assessment,
+           let successorID = receipt.successorGroupID {
+            resolvingGroup = latestGroups
+                .flatMap { branchResolver.visibleBranches(in: $0) }
+                .first { $0.asProcessGroup.id == successorID }?
+                .asProcessGroup
+        }
+        return assessment
     }
 
     private var currentPolicies: PreferencePolicies {

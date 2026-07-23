@@ -37,7 +37,13 @@ public struct WorkloadResourceSnapshot: Hashable, Sendable {
     }
 }
 
+public enum RecoveryScope: Hashable, Sendable {
+    case workload
+    case branch
+}
+
 public struct RecoveryReceipt: Hashable, Sendable {
+    public let scope: RecoveryScope
     public let fingerprint: WorkloadFingerprint
     public let originalGroupID: ProcessGroupID
     public let successorGroupID: ProcessGroupID?
@@ -48,6 +54,32 @@ public struct RecoveryReceipt: Hashable, Sendable {
     public let originalProcessCount: Int
     public let stoppedProcessCount: Int
     public let verificationDuration: TimeInterval
+
+    public init(
+        scope: RecoveryScope = .workload,
+        fingerprint: WorkloadFingerprint,
+        originalGroupID: ProcessGroupID,
+        successorGroupID: ProcessGroupID?,
+        displayName: String,
+        contextLabel: String?,
+        before: WorkloadResourceSnapshot,
+        after: WorkloadResourceSnapshot,
+        originalProcessCount: Int,
+        stoppedProcessCount: Int,
+        verificationDuration: TimeInterval
+    ) {
+        self.scope = scope
+        self.fingerprint = fingerprint
+        self.originalGroupID = originalGroupID
+        self.successorGroupID = successorGroupID
+        self.displayName = displayName
+        self.contextLabel = contextLabel
+        self.before = before
+        self.after = after
+        self.originalProcessCount = originalProcessCount
+        self.stoppedProcessCount = stoppedProcessCount
+        self.verificationDuration = verificationDuration
+    }
 
     public var memoryReductionBytes: UInt64 {
         before.memoryBytes > after.memoryBytes
@@ -113,5 +145,61 @@ public struct RecoveryVerifier: Sendable {
         }
 
         return .recovered(receipt)
+    }
+}
+
+public struct BranchRecoveryVerifier: Sendable {
+    private let resolver = ProcessBranchResolver()
+
+    public init() {}
+
+    public func assess(
+        original: ProcessBranch,
+        currentGroups: [ProcessGroup],
+        currentProcessIdentities: Set<ProcessIdentity>,
+        preexistingMatchingBranchIDs: Set<ProcessBranchID> = [],
+        verificationDuration: TimeInterval
+    ) -> RecoveryAssessment {
+        let remaining = original.processes
+            .map(\.identity)
+            .filter(currentProcessIdentities.contains)
+        let fingerprint = ProcessBranchFingerprint(branch: original)
+        let matchingBranch = currentGroups
+            .first { $0.id == original.id.workloadID }
+            .flatMap { workload in
+                resolver.visibleBranches(in: workload)
+                    .first {
+                        $0.id != original.id
+                            && !preexistingMatchingBranchIDs
+                                .contains($0.id)
+                            && ProcessBranchFingerprint(branch: $0)
+                                == fingerprint
+                    }
+            }
+        let originalGroup = original.asProcessGroup
+        let successor = matchingBranch?.asProcessGroup
+        let receipt = RecoveryReceipt(
+            scope: .branch,
+            fingerprint: WorkloadFingerprint(group: originalGroup),
+            originalGroupID: originalGroup.id,
+            successorGroupID: successor?.id,
+            displayName: original.displayName,
+            contextLabel: nil,
+            before: WorkloadResourceSnapshot(group: originalGroup),
+            after: WorkloadResourceSnapshot(group: successor),
+            originalProcessCount: original.processCount,
+            stoppedProcessCount: max(
+                0,
+                original.processCount - remaining.count
+            ),
+            verificationDuration: verificationDuration
+        )
+
+        if !remaining.isEmpty {
+            return .partial(receipt, remaining: remaining)
+        }
+        return successor == nil
+            ? .recovered(receipt)
+            : .restarted(receipt)
     }
 }

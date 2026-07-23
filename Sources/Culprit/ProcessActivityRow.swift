@@ -4,8 +4,8 @@ import SwiftUI
 struct ProcessActivityRow: View {
     let group: ProcessGroup
     let explanation: ResourceExplanation
-    let ramShare: Double
-    let batteryEstimate: BatteryDrainEstimate
+    let signature: DrainSignature
+    let branches: [ProcessBranch]
     let needsAttention: Bool
     let showsProjectNames: Bool
     let isExpanded: Bool
@@ -14,6 +14,9 @@ struct ProcessActivityRow: View {
     let onToggle: () -> Void
     let onQuit: () -> Void
     let onForceQuit: () -> Void
+    let branchCapability: (ProcessBranch) -> TerminationCapability
+    let onStopBranch: (ProcessBranch) -> Void
+    let onForceQuitBranch: (ProcessBranch) -> Void
     let onMute: () -> Void
 
     @State private var isHovered = false
@@ -50,22 +53,14 @@ struct ProcessActivityRow: View {
 
                     Spacer(minLength: 8)
 
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(
-                            "\(MetricFormatting.memory(group.memoryBytes)) · "
-                                + "\(MetricFormatting.ramShare(ramShare)) RAM"
-                        )
-                            .tabularMetric()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
-                        Text(
-                            "\(MetricFormatting.cpu(group.cpuPercent)) CPU · "
-                                + "\(batteryEstimate.rawValue) est."
-                        )
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    ResourceSignatureView(
+                        signature: signature,
+                        color: CulpritTheme.appColor(
+                            for: group.displayName
+                        ),
+                        compact: true
+                    )
+                    .frame(width: 116)
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 9, weight: .semibold))
@@ -108,46 +103,73 @@ struct ProcessActivityRow: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(explanation.processChain.joined(separator: "  →  "))
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+            ResourceSignatureView(
+                signature: signature,
+                color: CulpritTheme.appColor(for: group.displayName)
+            )
 
-                Text(
-                    "\(explanation.topWorker.name) is the top worker · "
-                        + "\(MetricFormatting.memory(explanation.topWorker.memoryBytes))"
-                )
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+            if !branches.isEmpty {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("MAIN BRANCHES")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
 
-                Text("Process details")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 3)
-
-                ForEach(group.processes.prefix(3), id: \.identity) { process in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.secondary.opacity(0.35))
-                            .frame(width: 4, height: 4)
-                        Text(process.name)
-                            .lineLimit(1)
-                        Spacer()
-                        Text("PID \(process.identity.pid)")
-                            .foregroundStyle(.tertiary)
+                    ForEach(branches) { branch in
+                        branchRow(branch)
                     }
-                    .font(.system(size: 10))
                 }
+            } else {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(explanation.processChain.joined(separator: "  →  "))
+                        .font(
+                            .system(
+                                size: 10,
+                                weight: .medium,
+                                design: .monospaced
+                            )
+                        )
 
-                if group.processCount > 3 {
-                    Text("+ \(group.processCount - 3) more")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                        .padding(.leading, 12)
+                    Text(
+                        "\(explanation.topWorker.name) is the top worker · "
+                            + MetricFormatting.memory(
+                                explanation.topWorker.memoryBytes
+                            )
+                    )
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+
                 }
             }
 
             action
         }
+    }
+
+    private func branchRow(_ branch: ProcessBranch) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(branch.displayName)
+                    .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+                Text(
+                    "\(branch.processCount) process"
+                        + (branch.processCount == 1 ? "" : "es")
+                        + " · \(MetricFormatting.memory(branch.memoryBytes))"
+                )
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+            BranchStopControl(
+                branch: branch,
+                stopState: stopState,
+                capability: branchCapability(branch),
+                stopLabel: "Stop branch",
+                onStop: { onStopBranch(branch) },
+                onForceQuit: { onForceQuitBranch(branch) }
+            )
+        }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -161,7 +183,7 @@ struct ProcessActivityRow: View {
                 HStack(spacing: 8) {
                     Button(buttonTitle, action: onQuit)
                         .buttonStyle(BorderlessActionStyle(tone: .secondary))
-                        .disabled(isWorking)
+                        .disabled(stopState != .idle)
                     Button("Mute alerts", action: onMute)
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)

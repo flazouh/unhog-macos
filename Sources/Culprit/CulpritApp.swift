@@ -33,7 +33,10 @@ struct CulpritApp: App {
             let presentation = store.menuBarPresentation
             HStack(spacing: 4) {
                 Image(systemName: presentation.symbolName)
-                if let label = presentation.compactLabel {
+                if presentation.compactLabel != nil,
+                   let signature = store.menuBarDrainSignature {
+                    MenuBarSignatureView(signature: signature)
+                } else if let label = presentation.compactLabel {
                     Text(label)
                         .monospacedDigit()
                         .lineLimit(1)
