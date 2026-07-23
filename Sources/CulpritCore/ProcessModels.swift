@@ -22,6 +22,7 @@ public struct ProcessSample: Hashable, Sendable {
     public let ownerUID: UInt32
     public let name: String
     public let executablePath: String
+    public let workingDirectory: String?
     public let cpuPercent: Double
     public let memoryBytes: UInt64
     public let tags: Set<ProcessTag>
@@ -32,6 +33,7 @@ public struct ProcessSample: Hashable, Sendable {
         ownerUID: UInt32,
         name: String,
         executablePath: String,
+        workingDirectory: String? = nil,
         cpuPercent: Double,
         memoryBytes: UInt64,
         tags: Set<ProcessTag> = []
@@ -41,6 +43,7 @@ public struct ProcessSample: Hashable, Sendable {
         self.ownerUID = ownerUID
         self.name = name
         self.executablePath = executablePath
+        self.workingDirectory = workingDirectory
         self.cpuPercent = cpuPercent
         self.memoryBytes = memoryBytes
         self.tags = tags
@@ -111,5 +114,41 @@ public struct ProcessGroup: Identifiable, Hashable, Sendable {
 
     public var processCount: Int {
         processes.count
+    }
+
+    public var contextLabel: String? {
+        let root = processes.first { $0.identity.pid == id.rootPID }
+            ?? processes.first
+        guard let path = root?.workingDirectory,
+              path != "/",
+              !path.isEmpty else {
+            return nil
+        }
+
+        let components = URL(fileURLWithPath: path).pathComponents
+        if let worktreesIndex = components.firstIndex(where: {
+            $0.hasSuffix(".worktrees")
+        }), components.indices.contains(worktreesIndex + 1) {
+            let repository = String(
+                components[worktreesIndex].dropLast(".worktrees".count)
+            )
+            return "\(Self.projectDisplayName(repository)) · "
+                + components[worktreesIndex + 1]
+        }
+
+        guard let folder = components.last,
+              folder != "Users",
+              folder != "Documents" else {
+            return nil
+        }
+        return Self.projectDisplayName(folder)
+    }
+
+    private static func projectDisplayName(_ value: String) -> String {
+        let lowercased = value.lowercased()
+        if lowercased.hasSuffix("ai"), lowercased.count > 2 {
+            return lowercased.dropLast(2).capitalized + "AI"
+        }
+        return value
     }
 }

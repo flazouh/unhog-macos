@@ -2,51 +2,62 @@ import CulpritCore
 import SwiftUI
 
 struct IncidentHeroView: View {
-    let incident: HeatIncident
+    let incident: ResourceIncident
     @ObservedObject var store: AppStore
 
     var body: some View {
-        SoftSurface {
-            VStack(alignment: .leading, spacing: 17) {
-                HStack(alignment: .top, spacing: 12) {
-                    ProcessIconView(group: incident.group, size: 38)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 11) {
+                ProcessIconView(group: incident.group, size: 34)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(incident.group.displayName) is making your Mac hot")
-                            .font(.system(size: 19, weight: .semibold))
-                            .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(headline)
+                        .font(.system(size: 17, weight: .semibold))
+                        .fixedSize(horizontal: false, vertical: true)
 
-                        if let origin = incident.group.origin {
-                            Text(origin)
-                                .font(.system(size: 12))
-                                .foregroundStyle(CulpritTheme.subtleText)
-                        }
+                    Text("\(primaryReading) for \(MetricFormatting.duration(incident.duration))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(CulpritTheme.subtleText)
+
+                    if let origin = incident.group.origin {
+                        Text(origin)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
                     }
                 }
-
-                HStack(spacing: 0) {
-                    metric(
-                        MetricFormatting.cpu(incident.group.cpuPercent),
-                        label: "CPU"
-                    )
-                    metric(
-                        MetricFormatting.memory(incident.group.memoryBytes),
-                        label: "Memory"
-                    )
-                    metric(
-                        MetricFormatting.duration(incident.duration),
-                        label: "Duration"
-                    )
-                }
-
-                Text(incident.reason)
-                    .font(.system(size: 12))
-                    .foregroundStyle(CulpritTheme.subtleText)
-
-                action
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 0) {
+                metric(
+                    MetricFormatting.ramShare(store.ramShare(for: incident.group)),
+                    label: "Installed RAM"
+                )
+                metric(
+                    MetricFormatting.cpu(incident.group.cpuPercent),
+                    label: "CPU"
+                )
+                metric(
+                    store.batteryEstimate(for: incident.group).rawValue,
+                    label: "Battery · est."
+                )
+            }
+
+            Text(impactExplanation)
+                .font(.system(size: 11))
+                .foregroundStyle(CulpritTheme.subtleText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            action
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(CulpritTheme.attention.opacity(0.075))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: CulpritTheme.cornerRadius,
+                style: .continuous
+            )
+        )
     }
 
     private func metric(_ value: String, label: String) -> some View {
@@ -93,11 +104,43 @@ struct IncidentHeroView: View {
     private var actionTitle: String {
         switch store.stopState {
         case .quitting(incident.group.id):
-            "Quitting…"
+            "Stopping…"
         case .forceKilling(incident.group.id):
             "Force quitting…"
         default:
-            "Quit \(incident.group.displayName)"
+            switch incident.group.kind {
+            case .application:
+                "Quit \(incident.group.displayName)"
+            case .playwright, .typeScript, .nx:
+                "Stop \(incident.group.displayName)"
+            }
+        }
+    }
+
+    private var headline: String {
+        switch incident.signal {
+        case .memory:
+            "\(incident.group.displayName) is using unusual memory"
+        case .cpu:
+            "\(incident.group.displayName) is keeping your CPU busy"
+        }
+    }
+
+    private var primaryReading: String {
+        switch incident.signal {
+        case .memory:
+            MetricFormatting.memory(incident.group.memoryBytes)
+        case .cpu:
+            MetricFormatting.cpu(incident.group.cpuPercent)
+        }
+    }
+
+    private var impactExplanation: String {
+        switch incident.signal {
+        case .memory:
+            "This may slow your Mac. CPU activity can also drain its battery."
+        case .cpu:
+            "This may drain your battery and make other apps slower."
         }
     }
 }

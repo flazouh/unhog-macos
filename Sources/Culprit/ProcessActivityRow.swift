@@ -3,6 +3,9 @@ import SwiftUI
 
 struct ProcessActivityRow: View {
     let group: ProcessGroup
+    let ramShare: Double
+    let batteryEstimate: BatteryDrainEstimate
+    let needsAttention: Bool
     let isExpanded: Bool
     let stopState: AppStore.StopState
     let capability: TerminationCapability
@@ -15,16 +18,28 @@ struct ProcessActivityRow: View {
     var body: some View {
         VStack(spacing: 0) {
             Button(action: onToggle) {
-                HStack(spacing: 11) {
-                    ProcessIconView(group: group)
+                HStack(spacing: 9) {
+                    Circle()
+                        .fill(CulpritTheme.appColor(for: group.displayName))
+                        .frame(width: 7, height: 7)
+
+                    ProcessIconView(group: group, size: 27)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(group.displayName)
-                            .font(.system(size: 13, weight: .medium))
-                            .lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text(group.displayName)
+                                .font(.system(size: 12, weight: .medium))
+                                .lineLimit(1)
+
+                            if needsAttention {
+                                Text("Attention")
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .foregroundStyle(CulpritTheme.attention)
+                            }
+                        }
 
                         Text(subtitle)
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -32,11 +47,20 @@ struct ProcessActivityRow: View {
                     Spacer(minLength: 8)
 
                     VStack(alignment: .trailing, spacing: 3) {
-                        Text(MetricFormatting.cpu(group.cpuPercent))
+                        Text(
+                            "\(MetricFormatting.memory(group.memoryBytes)) · "
+                                + "\(MetricFormatting.ramShare(ramShare)) RAM"
+                        )
                             .tabularMetric()
-                        Text(MetricFormatting.memory(group.memoryBytes))
-                            .font(.system(size: 10))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                        Text(
+                            "\(MetricFormatting.cpu(group.cpuPercent)) CPU · "
+                                + "\(batteryEstimate.rawValue) est."
+                        )
+                            .font(.system(size: 9))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
 
                     Image(systemName: "chevron.down")
@@ -45,7 +69,8 @@ struct ProcessActivityRow: View {
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
                 .contentShape(Rectangle())
-                .padding(10)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
             }
             .buttonStyle(.plain)
 
@@ -126,6 +151,10 @@ struct ProcessActivityRow: View {
     }
 
     private var subtitle: String {
-        group.origin ?? "\(group.processCount) process\(group.processCount == 1 ? "" : "es")"
+        let count = "\(group.processCount) process\(group.processCount == 1 ? "" : "es")"
+        if let context = group.contextLabel {
+            return context
+        }
+        return group.origin ?? count
     }
 }

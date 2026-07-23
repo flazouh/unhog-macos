@@ -13,7 +13,7 @@ final class AppStore: ObservableObject {
     }
 
     @Published private(set) var groups: [ProcessGroup] = []
-    @Published private(set) var incidents: [HeatIncident] = []
+    @Published private(set) var incidents: [ResourceIncident] = []
     @Published private(set) var isPreparing = true
     @Published private(set) var stopState: StopState = .idle
     @Published private(set) var message: String?
@@ -25,7 +25,9 @@ final class AppStore: ObservableObject {
     private let grouper = ProcessGrouper()
     private let terminationPolicy: TerminationPolicy
     private let notifications = NotificationController()
-    private var detector = HeatDetector()
+    private let currentUID: UInt32
+    private let appPID: Int32
+    private var detector: ResourcePressureDetector
     private var monitoringTask: Task<Void, Never>?
     private var sampleCount = 0
     private var notifiedIncidentIDs = Set<ProcessGroupID>()
@@ -42,6 +44,13 @@ final class AppStore: ObservableObject {
         appPID: Int32 = getpid()
     ) {
         self.monitor = monitor
+        self.currentUID = currentUID
+        self.appPID = appPID
+        self.detector = ResourcePressureDetector(
+            thresholds: .forInstalledMemory(
+                ProcessInfo.processInfo.physicalMemory
+            )
+        )
         self.terminator = SystemProcessTerminator(currentUID: currentUID)
         self.terminationPolicy = TerminationPolicy(
             currentUID: currentUID,
@@ -50,16 +59,40 @@ final class AppStore: ObservableObject {
         UserDefaults.standard.register(defaults: ["notificationsEnabled": true])
     }
 
-    var activeIncident: HeatIncident? {
+    var activeIncident: ResourceIncident? {
         incidents.first
+    }
+
+    var installedMemoryBytes: UInt64 {
+        ProcessInfo.processInfo.physicalMemory
+    }
+
+    var memoryComposition: MemoryComposition {
+        MemoryComposition(
+            installedBytes: installedMemoryBytes,
+            groups: latestGroups,
+            maximumVisibleSegments: 3
+        )
+    }
+
+    func ramShare(for group: ProcessGroup) -> Double {
+        guard installedMemoryBytes > 0 else { return 0 }
+        return min(
+            1,
+            Double(group.memoryBytes) / Double(installedMemoryBytes)
+        )
+    }
+
+    func batteryEstimate(for group: ProcessGroup) -> BatteryDrainEstimate {
+        BatteryDrainEstimate(cpuPercent: group.cpuPercent)
     }
 
     var menuBarSymbol: String {
         switch activeIncident?.severity {
-        case .critical:
-            "flame.fill"
-        case .warning:
-            "flame"
+        case .high:
+            "exclamationmark.circle.fill"
+        case .elevated:
+            "exclamationmark.circle"
         case nil:
             isPreparing ? "circle.dotted" : "circle"
         }
@@ -246,7 +279,10 @@ final class AppStore: ObservableObject {
 
     private func refresh() async {
         let samples = await monitor.sample()
-        let allGroups = grouper.groups(from: samples)
+        let userSamples = samples.filter {
+            $0.ownerUID == currentUID && $0.identity.pid != appPID
+        }
+        let allGroups = grouper.groups(from: userSamples)
         let newIncidents = detector.evaluate(allGroups)
         let memoryIsGrowing = allGroups.contains { group in
             guard let previous = previousGroupMemory[group.id] else {
@@ -265,10 +301,22 @@ final class AppStore: ObservableObject {
         pressureIsRising = !newIncidents.isEmpty
             || memoryIsGrowing
             || allGroups.contains { $0.cpuPercent >= 100 }
+        let incidentIDs = Set(newIncidents.map(\.id))
         groups = Array(
             allGroups
                 .filter { $0.cpuPercent >= 0.5 || $0.memoryBytes >= 30_000_000 }
-                .prefix(8)
+                .sorted {
+                    let leftNeedsAttention = incidentIDs.contains($0.id)
+                    let rightNeedsAttention = incidentIDs.contains($1.id)
+                    if leftNeedsAttention != rightNeedsAttention {
+                        return leftNeedsAttention
+                    }
+                    if $0.memoryBytes != $1.memoryBytes {
+                        return $0.memoryBytes > $1.memoryBytes
+                    }
+                    return $0.cpuPercent > $1.cpuPercent
+                }
+                .prefix(6)
         )
         incidents = newIncidents
 

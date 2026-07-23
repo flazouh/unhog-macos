@@ -17,6 +17,7 @@ final class SystemProcessSampler {
         let ownerUID: UInt32
         let name: String
         let path: String
+        let workingDirectory: String?
         let tags: Set<ProcessTag>
     }
 
@@ -71,6 +72,7 @@ final class SystemProcessSampler {
                     ownerUID: bsd.pbi_uid,
                     name: name,
                     path: path,
+                    workingDirectory: Self.workingDirectory(for: pid),
                     tags: Self.tags(for: pid, name: name, path: path)
                 )
             }
@@ -83,6 +85,7 @@ final class SystemProcessSampler {
                     ownerUID: metadata.ownerUID,
                     name: metadata.name,
                     executablePath: metadata.path,
+                    workingDirectory: metadata.workingDirectory,
                     cpuPercent: cpuPercent.isFinite ? max(0, cpuPercent) : 0,
                     memoryBytes: Self.memoryBytes(
                         for: pid,
@@ -156,6 +159,23 @@ final class SystemProcessSampler {
         var buffer = [CChar](repeating: 0, count: 4_096)
         let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
         return length > 0 ? decode(buffer, count: Int(length)) : ""
+    }
+
+    private static func workingDirectory(for pid: Int32) -> String? {
+        var info = proc_vnodepathinfo()
+        let size = Int32(MemoryLayout<proc_vnodepathinfo>.size)
+        let result = proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &info, size)
+        guard result == size else { return nil }
+
+        let path = withUnsafePointer(to: &info.pvi_cdir.vip_path) { pointer in
+            pointer.withMemoryRebound(
+                to: CChar.self,
+                capacity: Int(MAXPATHLEN)
+            ) {
+                String(cString: $0)
+            }
+        }
+        return path.isEmpty ? nil : path
     }
 
     private static func decode(_ buffer: [CChar], count: Int) -> String {

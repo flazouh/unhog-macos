@@ -9,8 +9,9 @@ struct PopoverView: View {
             header
 
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(spacing: 14) {
                     hero
+                    memoryMap
                     activity
 
                     if case let .forceAvailable(id) = store.stopState {
@@ -20,12 +21,15 @@ struct PopoverView: View {
                     }
                 }
                 .padding(.horizontal, CulpritTheme.pagePadding)
-                .padding(.bottom, 18)
+                .padding(.bottom, 14)
             }
 
             footer
         }
-        .frame(width: CulpritTheme.popoverWidth, height: 560)
+        .frame(
+            width: CulpritTheme.popoverWidth,
+            height: CulpritTheme.popoverHeight
+        )
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -40,17 +44,12 @@ struct PopoverView: View {
 
             Spacer()
 
-            Text(statusText.uppercased())
-                .font(.system(size: 10, weight: .bold))
-                .tracking(0.6)
+            Text(statusText)
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(statusColor)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(statusColor.opacity(0.1))
-                .clipShape(Capsule())
         }
         .padding(.horizontal, CulpritTheme.pagePadding)
-        .padding(.vertical, 16)
+        .padding(.vertical, 13)
     }
 
     @ViewBuilder
@@ -65,53 +64,57 @@ struct PopoverView: View {
     }
 
     private var preparingHero: some View {
-        SoftSurface {
-            HStack(spacing: 14) {
-                ProgressView()
-                    .controlSize(.small)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Learning what normal looks like")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("The first useful CPU reading takes two samples.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(CulpritTheme.subtleText)
-                }
-                Spacer()
+        HStack(spacing: 11) {
+            ProgressView()
+                .controlSize(.small)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Measuring current resource use")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("The first useful CPU reading takes two samples.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(CulpritTheme.subtleText)
             }
+            Spacer()
         }
+        .padding(.vertical, 6)
     }
 
     private var calmHero: some View {
-        SoftSurface {
-            VStack(alignment: .leading, spacing: 14) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 32, height: 32)
-                    .background(Color.primary.opacity(0.08))
-                    .clipShape(Circle())
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.secondary)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Everything looks calm")
-                        .font(.system(size: 19, weight: .semibold))
-                    Text("No process family has sustained dangerous CPU or memory use.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(CulpritTheme.subtleText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Everything looks normal")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("No app has sustained unusual CPU or memory use.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(CulpritTheme.subtleText)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer()
         }
+        .padding(.vertical, 6)
+    }
+
+    private var memoryMap: some View {
+        InstalledMemoryMapView(
+            composition: store.memoryComposition,
+            selectedGroupID: store.selectedGroupID,
+            onSelect: { store.toggleDetails(for: $0) }
+        )
+        .padding(.vertical, 2)
     }
 
     private var activity: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Activity")
+                Text("Apps")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("adaptive sampling")
-                    .font(.system(size: 10))
+                Text("RAM · CPU · battery estimate")
+                    .font(.system(size: 9))
                     .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
@@ -126,6 +129,11 @@ struct PopoverView: View {
                     ForEach(store.groups) { group in
                         ProcessActivityRow(
                             group: group,
+                            ramShare: store.ramShare(for: group),
+                            batteryEstimate: store.batteryEstimate(for: group),
+                            needsAttention: store.incidents.contains {
+                                $0.id == group.id
+                            },
                             isExpanded: store.selectedGroupID == group.id,
                             stopState: store.stopState,
                             capability: store.capability(for: group),
@@ -206,25 +214,20 @@ struct PopoverView: View {
         }
         .font(.system(size: 11))
         .padding(.horizontal, CulpritTheme.pagePadding)
-        .padding(.vertical, 13)
+        .padding(.vertical, 11)
         .background(CulpritTheme.surface.opacity(0.65))
     }
 
     private var statusText: String {
         if store.isPreparing { return "Checking" }
-        switch store.activeIncident?.severity {
-        case .warning: return "Hot"
-        case .critical: return "Critical"
-        case nil: return "Quiet"
+        if store.incidents.isEmpty {
+            return "No unusual drain"
         }
+        return "\(store.incidents.count) need\(store.incidents.count == 1 ? "s" : "") attention"
     }
 
     private var statusColor: Color {
         if store.isPreparing { return .secondary }
-        switch store.activeIncident?.severity {
-        case .warning: return CulpritTheme.warning
-        case .critical: return CulpritTheme.critical
-        case nil: return .secondary
-        }
+        return store.activeIncident == nil ? .secondary : CulpritTheme.attention
     }
 }

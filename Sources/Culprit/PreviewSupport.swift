@@ -16,7 +16,10 @@ enum PreviewSupport {
         previewWindow.titlebarAppearsTransparent = true
         previewWindow.isMovableByWindowBackground = true
         previewWindow.setContentSize(
-            NSSize(width: CulpritTheme.popoverWidth, height: 560)
+            NSSize(
+                width: CulpritTheme.popoverWidth,
+                height: CulpritTheme.popoverHeight
+            )
         )
         previewWindow.center()
         previewWindow.makeKeyAndOrderFront(nil)

@@ -9,7 +9,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Culprit")
                     .font(.system(size: 22, weight: .semibold))
-                Text("A quiet guardian for runaway processes.")
+                Text("Clear alerts for unusual CPU and memory drain.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -19,7 +19,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Sustained-load notifications")
                             .font(.system(size: 13, weight: .medium))
-                        Text("Alert after high CPU or memory lasts 20 seconds.")
+                        Text("Alert when unusual CPU or memory lasts 20 seconds.")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }

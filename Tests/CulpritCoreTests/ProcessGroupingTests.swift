@@ -95,6 +95,27 @@ struct ProcessGroupingTests {
         #expect(arc?.memoryBytes == 500)
     }
 
+    @Test("Developer stacks expose their project folder")
+    func attributesDeveloperStackToProject() {
+        let sample = ProcessSample(
+            identity: ProcessIdentity(
+                pid: 400,
+                startedAtMicroseconds: 400_000
+            ),
+            parentPID: 1,
+            ownerUID: 501,
+            name: "bun",
+            executablePath: "/Users/alex/.bun/bin/bun",
+            workingDirectory: "/Users/alex/Documents/fluentai.worktrees/ds-rebuild",
+            cpuPercent: 18,
+            memoryBytes: 3_860
+        )
+
+        let bun = ProcessGrouper().groups(from: [sample]).first
+
+        #expect(bun?.contextLabel == "FluentAI · ds-rebuild")
+    }
+
     private func sample(
         pid: Int32,
         parent: Int32,
@@ -102,6 +123,7 @@ struct ProcessGroupingTests {
         path: String,
         cpu: Double,
         memory: UInt64,
+        workingDirectory: String? = nil,
         tags: Set<ProcessTag> = []
     ) -> ProcessSample {
         ProcessSample(
@@ -110,6 +132,7 @@ struct ProcessGroupingTests {
             ownerUID: 501,
             name: name,
             executablePath: path,
+            workingDirectory: workingDirectory,
             cpuPercent: cpu,
             memoryBytes: memory,
             tags: tags

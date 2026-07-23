@@ -9,9 +9,9 @@ actor NotificationController {
         _ = try? await center.requestAuthorization(options: [.alert, .sound])
     }
 
-    func send(_ incident: HeatIncident) async {
+    func send(_ incident: ResourceIncident) async {
         let content = UNMutableNotificationContent()
-        content.title = "\(incident.group.displayName) is heating up your Mac"
+        content.title = notificationTitle(for: incident)
         content.body = notificationBody(for: incident)
         content.sound = .default
 
@@ -23,13 +23,22 @@ actor NotificationController {
         try? await center.add(request)
     }
 
-    private func notificationBody(for incident: HeatIncident) -> String {
+    private func notificationTitle(for incident: ResourceIncident) -> String {
+        switch incident.signal {
+        case .memory:
+            "\(incident.group.displayName) is using unusual memory"
+        case .cpu:
+            "\(incident.group.displayName) is keeping your CPU busy"
+        }
+    }
+
+    private func notificationBody(for incident: ResourceIncident) -> String {
         let cpu = Int(incident.group.cpuPercent.rounded())
         let memory = ByteCountFormatter.string(
             fromByteCount: Int64(clamping: incident.group.memoryBytes),
             countStyle: .memory
         )
-        return "\(cpu)% CPU · \(memory) · \(incident.reason)"
+        return "\(cpu)% CPU · \(memory). This may slow your Mac or drain its battery."
     }
 
     private func notificationIdentifier(for id: ProcessGroupID) -> String {

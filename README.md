@@ -2,7 +2,7 @@
 
 Culprit is a native macOS menu-bar app that answers one question:
 
-> What is making this Mac hot, and can I stop it safely?
+> What is draining this Mac, and can I stop it safely?
 
 It groups related processes into understandable families such as Playwright,
 TypeScript servers, Nx, and normal applications. CPU is measured from real
@@ -15,17 +15,22 @@ fallback. All data stays on the Mac.
 - Adaptive, low-overhead sampling through macOS `libproc`: five seconds while
   calm and two seconds while pressure is rising. Expensive physical-footprint
   reads are limited to processes large or active enough to matter.
-- CPU, memory, duration, process count, parent origin, and real app icons.
+- A compact 100%-of-installed-RAM map with stable app colours and an honest
+  `macOS + rest` remainder.
+- CPU, RAM share, estimated battery impact, duration, process count, project
+  folder attribution, parent origin, and real app icons.
 - Session-scoped process-family grouping for Playwright, TypeScript servers,
   Nx, and apps. Independent jobs never share a kill target.
-- Sustained-load detection so short compile spikes do not create alerts.
+- Machine-scaled sustained-load detection so short compile spikes and normal
+  large apps do not create noisy alerts.
 - Local notifications after 20 seconds of high load.
 - One-click normal AppKit quit for GUI apps or `SIGTERM` for developer-tool
   families, followed by an explicit force-quit option if needed.
 - PID plus process-start-time validation immediately before every signal.
 - Permanent protection for macOS system processes, other users’ processes,
   PID 0/1, and Culprit itself.
-- Borderless, monochrome interface with heat color used only for real pressure.
+- Borderless interface with app colours used for identity and amber reserved
+  for attention.
 
 ## Build and run
 
@@ -65,7 +70,8 @@ The behavior suite covers:
 ```text
 SystemProcessSampler  -> immutable ProcessSample values
 ProcessGrouper        -> understandable process families
-HeatDetector          -> sustained, explainable incidents
+ResourcePressureDetector -> sustained, explainable incidents
+MemoryComposition     -> installed-RAM shares and honest remainder
 TerminationPolicy     -> pure safety decision
 SystemProcessTerminator -> revalidate identity, then signal
 AppStore              -> UI state and user intents
@@ -78,11 +84,12 @@ immediately before sending `SIGTERM` or `SIGKILL`.
 
 ## Design contract
 
-- Default state is quiet, not a dashboard.
+- Default state is compact and calm, with one installed-RAM map.
 - The active incident gets one dominant explanation and one primary action.
 - No outlined cards or buttons.
 - Hierarchy comes from spacing, type, tonal surfaces, and restrained color.
 - Technical PIDs and child processes are available through disclosure.
+- Battery impact is clearly labelled as an estimate derived from CPU activity.
 - Force quit is never the first action.
 - Automatic force killing is intentionally outside this MVP.
 
@@ -91,6 +98,7 @@ immediately before sending `SIGTERM` or `SIGKILL`.
 - Culprit can only stop processes owned by the current user.
 - Family detection is heuristic and currently specializes in the developer
   tools that caused the original incidents.
-- System-wide memory pressure is a sensible next addition.
+- The grey RAM-map remainder deliberately combines macOS, untracked processes,
+  and free memory; it does not pretend process totals equal system used memory.
 - Notification buttons and user-defined automatic rules are planned, but not
   included in the safety-first MVP.
