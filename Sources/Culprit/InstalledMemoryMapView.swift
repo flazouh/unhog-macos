@@ -23,14 +23,14 @@ struct InstalledMemoryMapView: View {
                     .foregroundStyle(.secondary)
             }
 
-            GeometryReader { proxy in
-                let itemCount = composition.segments.count + 1
-                let usableWidth = max(
-                    0,
-                    proxy.size.width - CGFloat(max(0, itemCount - 1))
-                )
+            VStack(spacing: 0) {
+                GeometryReader { proxy in
+                    let itemCount = composition.segments.count + 1
+                    let usableWidth = max(
+                        0,
+                        proxy.size.width - CGFloat(max(0, itemCount - 1))
+                    )
 
-                ZStack(alignment: .topLeading) {
                     HStack(spacing: 1) {
                         ForEach(
                             Array(composition.segments.enumerated()),
@@ -85,45 +85,13 @@ struct InstalledMemoryMapView: View {
                         y: 1,
                         anchor: .leading
                     )
-
-                    if let marker = focusedMarker(
-                        usableWidth: usableWidth
-                    ) {
-                        Capsule()
-                            .fill(marker.color)
-                            .frame(width: 8, height: 2)
-                            .offset(
-                                x: marker.centerX - 4,
-                                y: 16
-                            )
-                            .opacity(revealed ? 1 : 0)
-                            .accessibilityHidden(true)
-                    }
                 }
-            }
-            .frame(height: 18)
+                .frame(height: 14)
 
-            HStack(spacing: 8) {
-                ForEach(
-                    Array(composition.segments.enumerated()),
-                    id: \.element.id
-                ) { _, segment in
-                    legendItem(segment)
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
+                GeometryReader { proxy in
+                    linkedLegend(size: proxy.size)
                 }
-
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(CulpritTheme.remainder)
-                        .frame(width: 5, height: 5)
-                    Text("Other")
-                }
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 23)
             }
         }
         .onAppear {
@@ -138,51 +106,169 @@ struct InstalledMemoryMapView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private func focusedMarker(
-        usableWidth: CGFloat
-    ) -> (centerX: CGFloat, color: Color)? {
-        guard let focusedGroupID,
-              let index = composition.segments.firstIndex(
-                  where: { $0.group.id == focusedGroupID }
-              )
-        else {
-            return nil
-        }
+    private func linkedLegend(
+        size: CGSize
+    ) -> some View {
+        let itemCount = composition.segments.count + 1
+        let usableWidth = max(
+            0,
+            size.width - CGFloat(max(0, itemCount - 1))
+        )
 
+        return ZStack(alignment: .top) {
+            Canvas { context, canvasSize in
+                for (index, segment) in
+                    composition.segments.enumerated()
+                {
+                    let sourceX = segmentCenterX(
+                        at: index,
+                        usableWidth: usableWidth
+                    )
+                    let targetX = labelCenterX(
+                        at: index,
+                        width: canvasSize.width,
+                        itemCount: itemCount
+                    )
+                    let isFocused = segment.group.id
+                        == focusedGroupID
+                    var path = Path()
+                    path.move(to: CGPoint(x: sourceX, y: 0))
+                    path.addLine(
+                        to: CGPoint(x: sourceX, y: 4)
+                    )
+                    path.addLine(
+                        to: CGPoint(x: targetX, y: 8)
+                    )
+
+                    context.stroke(
+                        path,
+                        with: .color(
+                            CulpritTheme.identityColor(
+                                for: segment.group.displayName
+                            )
+                            .opacity(isFocused ? 0.95 : 0.5)
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: isFocused ? 1.5 : 1,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+                }
+
+                let remainderSourceX = remainderCenterX(
+                    usableWidth: usableWidth
+                )
+                let remainderTargetX = labelCenterX(
+                    at: itemCount - 1,
+                    width: canvasSize.width,
+                    itemCount: itemCount
+                )
+                var remainderPath = Path()
+                remainderPath.move(
+                    to: CGPoint(x: remainderSourceX, y: 0)
+                )
+                remainderPath.addLine(
+                    to: CGPoint(x: remainderSourceX, y: 4)
+                )
+                remainderPath.addLine(
+                    to: CGPoint(x: remainderTargetX, y: 8)
+                )
+                context.stroke(
+                    remainderPath,
+                    with: .color(Color.secondary.opacity(0.24)),
+                    style: StrokeStyle(
+                        lineWidth: 1,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+            }
+            .frame(height: 9)
+            .opacity(revealed ? 1 : 0)
+
+            HStack(spacing: 0) {
+                ForEach(
+                    Array(composition.segments.enumerated()),
+                    id: \.element.id
+                ) { _, segment in
+                    Text(segment.group.displayName)
+                        .font(
+                            .system(
+                                size: 9,
+                                weight: segment.group.id
+                                    == focusedGroupID
+                                    ? .semibold
+                                    : .medium
+                            )
+                        )
+                        .foregroundStyle(
+                            segment.group.id == focusedGroupID
+                                ? .primary
+                                : .secondary
+                        )
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .center
+                        )
+                }
+
+                Text("Other")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: .center
+                    )
+            }
+            .offset(y: 11)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func segmentCenterX(
+        at index: Int,
+        usableWidth: CGFloat
+    ) -> CGFloat {
         let precedingShare = composition.segments[..<index]
             .reduce(CGFloat.zero) {
                 $0 + CGFloat($1.shareOfInstalledRAM)
             }
         let segment = composition.segments[index]
-        let centerX = usableWidth
+        return usableWidth
             * (
                 precedingShare
                     + CGFloat(segment.shareOfInstalledRAM) / 2
             )
             + CGFloat(index)
-
-        return (
-            centerX,
-            CulpritTheme.identityColor(for: segment.group.displayName)
-        )
     }
 
-    private func legendItem(
-        _ segment: AppMemorySegment
-    ) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(
-                    CulpritTheme.identityColor(
-                        for: segment.group.displayName
-                    )
-                )
-                .frame(width: 5, height: 5)
-            Text(segment.group.displayName)
-            .lineLimit(1)
-            .truncationMode(.tail)
-        }
-        .font(.system(size: 9, weight: .medium))
+    private func remainderCenterX(
+        usableWidth: CGFloat
+    ) -> CGFloat {
+        let attributedShare = composition.segments
+            .reduce(CGFloat.zero) {
+                $0 + CGFloat($1.shareOfInstalledRAM)
+            }
+        return usableWidth
+            * (
+                attributedShare
+                    + CGFloat(composition.remainderShare) / 2
+            )
+            + CGFloat(composition.segments.count)
+    }
+
+    private func labelCenterX(
+        at index: Int,
+        width: CGFloat,
+        itemCount: Int
+    ) -> CGFloat {
+        guard itemCount > 0 else { return 0 }
+        return width
+            * (CGFloat(index) + 0.5)
+            / CGFloat(itemCount)
     }
 
     private func memorySegment(

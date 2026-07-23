@@ -108,8 +108,12 @@ struct PopoverView: View {
     }
 
     private var overflowMenu: some View {
-        FluidDropdown(width: 218) {
-            Label("Controls", systemImage: "slider.horizontal.3")
+        FluidDropdown(
+            width: 218,
+            triggerStyle: .iconOnly
+        ) {
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: 12, weight: .medium))
         } content: {
             FluidDropdownSectionLabel("Monitoring")
 

@@ -22,7 +22,13 @@ private extension EnvironmentValues {
 }
 
 struct FluidDropdown<Label: View, Content: View>: View {
+    enum TriggerStyle {
+        case standard
+        case iconOnly
+    }
+
     let width: CGFloat
+    let triggerStyle: TriggerStyle
     @ViewBuilder let label: Label
     @ViewBuilder let content: Content
 
@@ -32,10 +38,12 @@ struct FluidDropdown<Label: View, Content: View>: View {
 
     init(
         width: CGFloat = 220,
+        triggerStyle: TriggerStyle = .standard,
         @ViewBuilder label: () -> Label,
         @ViewBuilder content: () -> Content
     ) {
         self.width = width
+        self.triggerStyle = triggerStyle
         self.label = label()
         self.content = content()
     }
@@ -47,14 +55,24 @@ struct FluidDropdown<Label: View, Content: View>: View {
             HStack(spacing: 5) {
                 label
 
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
-                    .rotationEffect(.degrees(isPresented ? 180 : 0))
+                if triggerStyle == .standard {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                        .rotationEffect(
+                            .degrees(isPresented ? 180 : 0)
+                        )
+                }
             }
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(isPresented ? .primary : .secondary)
-            .padding(.horizontal, 8)
-            .frame(minHeight: 28)
+            .padding(
+                .horizontal,
+                triggerStyle == .iconOnly ? 0 : 8
+            )
+            .frame(
+                width: triggerStyle == .iconOnly ? 28 : nil,
+                height: 28
+            )
             .background(
                 isPresented || isHovered
                     ? CulpritTheme.surfaceHover
@@ -92,6 +110,7 @@ struct FluidDropdown<Label: View, Content: View>: View {
                     isPresented = false
                 }
             )
+            .presentationBackground(.clear)
         }
         .accessibilityValue(isPresented ? "Expanded" : "Collapsed")
     }
@@ -280,7 +299,26 @@ private struct FluidDropdownPanel<Content: View>: View {
         }
         .padding(6)
         .frame(width: width)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(
+            .regularMaterial,
+            in: RoundedRectangle(
+                cornerRadius: 12,
+                style: .continuous
+            )
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: 12,
+                style: .continuous
+            )
+            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+        .shadow(
+            color: Color.black.opacity(0.24),
+            radius: 18,
+            x: 0,
+            y: 8
+        )
         .scaleEffect(
             reduceMotion || appeared ? 1 : 0.96,
             anchor: .topTrailing
