@@ -1,6 +1,6 @@
 import CulpritCore
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 actor NotificationController {
     private let center = UNUserNotificationCenter.current()
