@@ -10,7 +10,7 @@ struct InstalledMemoryMapView: View {
     @State private var revealed = false
 
     private let barHeight: CGFloat = 18
-    private let leaderHeight: CGFloat = 8
+    private let leaderHeight: CGFloat = 10
     private let chipHeight: CGFloat = 16
     private let segmentSpacing: CGFloat = 1
     private let chipGap: CGFloat = 8
@@ -72,7 +72,7 @@ struct InstalledMemoryMapView: View {
                             )
                             .opacity(0.45),
                             style: StrokeStyle(
-                                lineWidth: 1,
+                                lineWidth: 1.35,
                                 lineCap: .round
                             )
                         )
@@ -221,21 +221,23 @@ struct InstalledMemoryMapView: View {
             y: barHeight
         )
         let end = CGPoint(
-            x: chip.placement.minimumX + 6,
+            x: chip.placement.center,
             y: barHeight + leaderHeight
         )
+        let horizontalDistance = end.x - start.x
+        let subtleBow: CGFloat = abs(horizontalDistance) < 8 ? 7 : 0
 
         var path = Path()
         path.move(to: start)
         path.addCurve(
             to: end,
             control1: CGPoint(
-                x: start.x,
-                y: barHeight + leaderHeight * 0.36
+                x: start.x + horizontalDistance * 0.2 + subtleBow,
+                y: barHeight + leaderHeight * 0.28
             ),
             control2: CGPoint(
-                x: end.x,
-                y: barHeight + leaderHeight * 0.64
+                x: end.x - horizontalDistance * 0.2 + subtleBow,
+                y: barHeight + leaderHeight * 0.72
             )
         )
         return path
