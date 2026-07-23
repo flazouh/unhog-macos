@@ -36,13 +36,17 @@ struct InstalledMemoryMapView: View {
                             Array(composition.segments.enumerated()),
                             id: \.element.id
                         ) { _, segment in
-                            CulpritTheme.identityColor(
-                                for: segment.group.displayName
+                            let segmentWidth = usableWidth
+                                * segment.shareOfInstalledRAM
+
+                            memorySegment(
+                                segment,
+                                width: segmentWidth
                             )
                             .frame(
-                                width: usableWidth
-                                    * segment.shareOfInstalledRAM
+                                width: segmentWidth
                             )
+                            .accessibilityElement(children: .ignore)
                             .accessibilityLabel(
                                 "\(segment.group.displayName), "
                                     + MetricFormatting.memory(segment.bytes)
@@ -54,11 +58,14 @@ struct InstalledMemoryMapView: View {
                             )
                         }
 
-                        CulpritTheme.remainder
+                        let remainderWidth = usableWidth
+                            * composition.remainderShare
+
+                        remainderSegment(width: remainderWidth)
                             .frame(
-                                width: usableWidth
-                                    * composition.remainderShare
+                                width: remainderWidth
                             )
+                            .accessibilityElement(children: .ignore)
                             .accessibilityLabel(
                                 "macOS, other apps, and unused memory, "
                                     + MetricFormatting.memory(
@@ -171,13 +178,75 @@ struct InstalledMemoryMapView: View {
                     )
                 )
                 .frame(width: 5, height: 5)
-            Text(
-                "\(segment.group.displayName) "
-                    + MetricFormatting.memory(segment.bytes)
-            )
+            Text(segment.group.displayName)
             .lineLimit(1)
             .truncationMode(.tail)
         }
         .font(.system(size: 9, weight: .medium))
+    }
+
+    private func memorySegment(
+        _ segment: AppMemorySegment,
+        width: CGFloat
+    ) -> some View {
+        ZStack {
+            CulpritTheme.identityColor(
+                for: segment.group.displayName
+            )
+
+            if width >= 24 {
+                ViewThatFits(in: .horizontal) {
+                    Text(MetricFormatting.memory(segment.bytes))
+                        .font(
+                            .system(
+                                size: width >= 34 ? 7.5 : 7,
+                                weight: .semibold,
+                                design: .rounded
+                            )
+                        )
+                        .monospacedDigit()
+                        .foregroundStyle(Color.black.opacity(0.88))
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, width >= 34 ? 2 : 0)
+
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                }
+            }
+        }
+    }
+
+    private func remainderSegment(
+        width: CGFloat
+    ) -> some View {
+        ZStack {
+            CulpritTheme.remainder
+
+            if width >= 24 {
+                ViewThatFits(in: .horizontal) {
+                    Text(
+                        MetricFormatting.memory(
+                            composition.remainderBytes
+                        )
+                    )
+                    .font(
+                        .system(
+                            size: 8,
+                            weight: .medium,
+                            design: .rounded
+                        )
+                    )
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 3)
+
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                }
+            }
+        }
     }
 }
