@@ -131,17 +131,12 @@ struct InstalledMemoryMapView: View {
                     )
                     let isFocused = segment.group.id
                         == focusedGroupID
-                    var path = Path()
-                    path.move(to: CGPoint(x: sourceX, y: 0))
-                    path.addLine(
-                        to: CGPoint(x: sourceX, y: 4)
-                    )
-                    path.addLine(
-                        to: CGPoint(x: targetX, y: 8)
-                    )
 
                     context.stroke(
-                        path,
+                        bezierLeaderPath(
+                            fromX: sourceX,
+                            toX: targetX
+                        ),
                         with: .color(
                             CulpritTheme.identityColor(
                                 for: segment.group.displayName
@@ -164,18 +159,11 @@ struct InstalledMemoryMapView: View {
                     width: canvasSize.width,
                     itemCount: itemCount
                 )
-                var remainderPath = Path()
-                remainderPath.move(
-                    to: CGPoint(x: remainderSourceX, y: 0)
-                )
-                remainderPath.addLine(
-                    to: CGPoint(x: remainderSourceX, y: 4)
-                )
-                remainderPath.addLine(
-                    to: CGPoint(x: remainderTargetX, y: 8)
-                )
                 context.stroke(
-                    remainderPath,
+                    bezierLeaderPath(
+                        fromX: remainderSourceX,
+                        toX: remainderTargetX
+                    ),
                     with: .color(Color.secondary.opacity(0.24)),
                     style: StrokeStyle(
                         lineWidth: 1,
@@ -226,6 +214,20 @@ struct InstalledMemoryMapView: View {
             .offset(y: 11)
         }
         .accessibilityHidden(true)
+    }
+
+    private func bezierLeaderPath(
+        fromX sourceX: CGFloat,
+        toX targetX: CGFloat
+    ) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: sourceX, y: 0))
+        path.addCurve(
+            to: CGPoint(x: targetX, y: 8),
+            control1: CGPoint(x: sourceX, y: 5.5),
+            control2: CGPoint(x: targetX, y: 2.5)
+        )
+        return path
     }
 
     private func segmentCenterX(
