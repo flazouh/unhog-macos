@@ -170,9 +170,23 @@ struct ProcessActivityRow: View {
                     .buttonStyle(BorderlessActionStyle(tone: .destructive))
             } else {
                 HStack(spacing: 8) {
-                    Button(buttonTitle, action: onQuit)
+                    Button(action: onQuit) {
+                        HStack(spacing: 7) {
+                            if isWorking {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                            Text(buttonTitle)
+                                .lineLimit(1)
+                        }
+                    }
                         .buttonStyle(BorderlessActionStyle(tone: .secondary))
                         .disabled(stopState != .idle)
+                        .accessibilityLabel(
+                            isWorking
+                                ? "Stopping \(group.displayName)"
+                                : buttonTitle
+                        )
                     Button("Mute alerts", action: onMute)
                         .buttonStyle(InlineActionStyle())
                 }

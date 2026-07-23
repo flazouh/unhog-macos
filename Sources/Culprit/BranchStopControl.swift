@@ -20,11 +20,15 @@ struct BranchStopControl: View {
                         "Force quit \(branch.displayName) branch"
                     )
             } else if isStoppingThisBranch {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel(
-                        "Stopping \(branch.displayName) branch"
-                    )
+                HStack(spacing: 5) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Stopping…")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .accessibilityLabel(
+                    "Stopping \(branch.displayName) branch"
+                )
             } else {
                 Button(stopLabel, action: onStop)
                     .buttonStyle(.plain)

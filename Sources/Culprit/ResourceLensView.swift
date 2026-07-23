@@ -216,14 +216,18 @@ struct ResourceLensView: View {
     private func action(for group: ProcessGroup) -> some View {
         switch store.capability(for: group) {
         case .allowed:
-            if store.stopState == .quitting(group.id) {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(stoppingTitle(group))
-                        .font(.system(size: 12, weight: .medium))
+            if isStopping(group) {
+                Button {} label: {
+                    HStack(spacing: 7) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(stoppingTitle(group))
+                            .lineLimit(1)
+                    }
                 }
-                .padding(.vertical, 6)
+                .buttonStyle(BorderlessActionStyle(tone: .primary))
+                .disabled(true)
+                .accessibilityLabel(stoppingTitle(group))
             } else {
                 HStack(spacing: 8) {
                     Button {
@@ -504,6 +508,11 @@ struct ResourceLensView: View {
                 store.preferences.safety.showsProjectNames
         )
         return "Stopping \(name)…"
+    }
+
+    private func isStopping(_ group: ProcessGroup) -> Bool {
+        store.stopState == .quitting(group.id)
+            || store.stopState == .forceKilling(group.id)
     }
 
 }
