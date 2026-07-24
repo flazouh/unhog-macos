@@ -192,9 +192,9 @@ struct PopoverView: View {
                             explanation: store.explanation(for: group),
                             signature: store.drainSignature(for: group),
                             branches: store.branches(for: group),
-                            needsAttention: store.incidents.contains {
+                            severity: store.incidents.first {
                                 $0.id == group.id
-                            },
+                            }?.severity,
                             showsProjectNames:
                                 store.preferences.safety.showsProjectNames,
                             isExpanded: store.selectedGroupID == group.id,
@@ -282,13 +282,22 @@ struct PopoverView: View {
     }
 
     private var statusColor: Color {
+        if store.isMonitoringPaused { return .secondary }
         if store.isPreparing { return .secondary }
+        if case .recovered? = store.recoveryAssessment {
+            return UnhogTheme.healthyForeground
+        }
         if case .restarted? = store.recoveryAssessment {
-            return UnhogTheme.attention
+            return UnhogTheme.warningForeground
         }
         if case .partial? = store.recoveryAssessment {
-            return UnhogTheme.attention
+            return UnhogTheme.warningForeground
         }
-        return store.activeIncident == nil ? .secondary : UnhogTheme.attention
+        guard let incident = store.activeIncident else {
+            return UnhogTheme.healthyForeground
+        }
+        return UnhogTheme.severityForeground(
+            for: incident.severity
+        )
     }
 }

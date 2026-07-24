@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UnhogCore
 
 private struct UnhogReduceMotionKey: EnvironmentKey {
     static let defaultValue = false
@@ -47,8 +48,53 @@ enum UnhogTheme {
         green: 120 / 255,
         blue: 247 / 255
     )
+    static let healthy = Color(
+        red: 21 / 255,
+        green: 219 / 255,
+        blue: 149 / 255
+    )
+    static let warning = Color(
+        red: 251 / 255,
+        green: 215 / 255,
+        blue: 60 / 255
+    )
+    static let healthyForeground = adaptiveForeground(
+        light: NSColor(
+            srgbRed: 0,
+            green: 122 / 255,
+            blue: 83 / 255,
+            alpha: 1
+        ),
+        dark: NSColor(
+            srgbRed: 21 / 255,
+            green: 219 / 255,
+            blue: 149 / 255,
+            alpha: 1
+        )
+    )
+    static let warningForeground = adaptiveForeground(
+        light: NSColor(
+            srgbRed: 122 / 255,
+            green: 88 / 255,
+            blue: 0,
+            alpha: 1
+        ),
+        dark: NSColor(
+            srgbRed: 251 / 255,
+            green: 215 / 255,
+            blue: 60 / 255,
+            alpha: 1
+        )
+    )
     static let attention = destructive
     static let remainder = Color.primary.opacity(0.11)
+
+    private static let dataColors = [
+        ram,
+        cpu,
+        energy,
+        selection
+    ]
 
     static let motionEnter = Animation.timingCurve(
         0.23,
@@ -67,8 +113,7 @@ enum UnhogTheme {
     static let motionFade = Animation.easeOut(duration: 0.20)
 
     static func dataColor(at index: Int) -> Color {
-        let colors = [ram, cpu, energy, selection]
-        return colors[index % colors.count]
+        dataColors[index % dataColors.count]
     }
 
     static func identityColor(for name: String) -> Color {
@@ -77,7 +122,34 @@ enum UnhogTheme {
             hash ^= UInt64(byte)
             hash &*= 1_099_511_628_211
         }
-        return dataColor(at: Int(hash % 4))
+        return dataColor(
+            at: Int(hash % UInt64(dataColors.count))
+        )
+    }
+
+    static func severityColor(
+        for severity: ResourceSeverity
+    ) -> Color {
+        severity == .high ? attention : warning
+    }
+
+    static func severityForeground(
+        for severity: ResourceSeverity
+    ) -> Color {
+        severity == .high ? attention : warningForeground
+    }
+
+    private static func adaptiveForeground(
+        light: NSColor,
+        dark: NSColor
+    ) -> Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                appearance.bestMatch(
+                    from: [.aqua, .darkAqua]
+                ) == .darkAqua ? dark : light
+            }
+        )
     }
 }
 

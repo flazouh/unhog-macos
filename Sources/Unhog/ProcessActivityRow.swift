@@ -6,7 +6,7 @@ struct ProcessActivityRow: View {
     let explanation: ResourceExplanation
     let signature: DrainSignature
     let branches: [ProcessBranch]
-    let needsAttention: Bool
+    let severity: ResourceSeverity?
     let showsProjectNames: Bool
     let isExpanded: Bool
     let stopState: AppStore.StopState
@@ -39,15 +39,23 @@ struct ProcessActivityRow: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .lineLimit(1)
 
-                            if needsAttention {
+                            if let severity {
                                 HStack(spacing: 3) {
                                     Circle()
-                                        .fill(UnhogTheme.destructive)
+                                        .fill(
+                                            UnhogTheme.severityColor(
+                                                for: severity
+                                            )
+                                        )
                                         .frame(width: 4, height: 4)
                                     Text("draining")
                                 }
                                 .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(UnhogTheme.destructive)
+                                .foregroundStyle(
+                                    UnhogTheme.severityForeground(
+                                        for: severity
+                                    )
+                                )
                             }
                         }
 

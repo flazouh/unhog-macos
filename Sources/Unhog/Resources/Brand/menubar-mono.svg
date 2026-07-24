@@ -1,10 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Unhog menu bar resource map">
-  <title>Unhog</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Unhog menu-bar template icon: grid of memory cells with one cell stepped out">
+  <!--
+    Unhog menu-bar icon - 16px monochrome template.
+
+    Drawn on the pixel grid: 3px cells, 2px gutters, no rotation, no
+    sub-pixel detail. The culprit cell is solid; the socket it left is
+    35% alpha (menu-bar templates support alpha and macOS tints the
+    whole glyph for light/dark/active states).
+
+    Export as template ("UnhogMenuTemplate"): single color, alpha only.
+  -->
   <g fill="#000000">
-    <rect x=".4" y="6.4" width="2.7" height="4.6" rx=".7"/>
-    <rect x="3.4" y="4.5" width="5" height="6.5" rx=".9"/>
-    <rect x="8.7" y="6.4" width="2.25" height="4.6" rx=".7"/>
-    <rect x="11.25" y="6.4" width="1.8" height="4.6" rx=".65"/>
-    <rect x="13.35" y="6.4" width="1.35" height="4.6" rx=".6"/>
+    <rect x="1" y="2" width="3" height="3" rx="0.6"/>
+    <rect x="6" y="2" width="3" height="3" rx="0.6"/>
+    <rect x="1" y="7" width="3" height="3" rx="0.6"/>
+    <rect x="6" y="7" width="3" height="3" rx="0.6"/>
+    <rect x="11" y="7" width="3" height="3" rx="0.6"/>
+    <rect x="1" y="12" width="3" height="3" rx="0.6"/>
+    <rect x="6" y="12" width="3" height="3" rx="0.6"/>
+    <rect x="11" y="12" width="3" height="3" rx="0.6"/>
+    <!-- socket: slightly receded ghost so it never fuses with the culprit -->
+    <rect x="11.25" y="2.25" width="2.5" height="2.5" rx="0.5" opacity="0.3"/>
+    <!-- culprit, stepped out to the corner -->
+    <rect x="13" y="0" width="3" height="3" rx="0.6"/>
   </g>
 </svg>

@@ -8,7 +8,7 @@ struct AgentsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            summary
+            header
 
             if store.isLoading, store.sessions.isEmpty {
                 loading
@@ -21,65 +21,108 @@ struct AgentsView: View {
                 )
             } else if store.sessions.isEmpty {
                 emptyState(
-                    symbol: "sparkles",
-                    title: "No recent agents",
-                    detail: "Codex and Claude sessions will appear here."
+                    symbol: "point.3.connected.trianglepath.dotted",
+                    title: "No recent sessions",
+                    detail: "Start Codex or Claude to see its work live."
                 )
             } else {
-                LazyVStack(spacing: 8) {
-                    ForEach(store.sessions) { session in
-                        AgentSessionRow(session: session)
-                    }
-                }
+                sessionStream
             }
         }
-        .onAppear {
-            store.startRefreshing()
-        }
-        .onDisappear {
-            store.stopRefreshing()
-        }
+        .onAppear { store.startRefreshing() }
+        .onDisappear { store.stopRefreshing() }
         .animation(
             reduceMotion ? nil : UnhogTheme.motionMove,
             value: store.sessions
         )
     }
 
-    private var summary: some View {
-        HStack(alignment: .firstTextBaseline) {
+    private var header: some View {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Agent windows")
+                Text("Agent command center")
                     .font(.system(size: 12, weight: .semibold))
-                Text("Local sessions · nothing leaves this Mac")
+                Text(statusLine)
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            if !store.sessions.isEmpty {
-                Text(
-                    "\(updatingCount) updating"
+            Button {
+                AgentWorkspaceController.shared.present(
+                    store: store,
+                    sessionID: store.rootSessions.first?.id
                 )
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(
-                    updatingCount > 0
-                        ? UnhogTheme.healthyForeground
-                        : .secondary
-                )
-                .monospacedDigit()
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 28, height: 28)
             }
+            .buttonStyle(InlineActionStyle(compact: true))
+            .accessibilityLabel("Open Agent Console")
         }
     }
 
-    private var updatingCount: Int {
-        store.sessions.count { $0.freshness == .updating }
+    private var statusLine: String {
+        let active = store.rootSessions.count {
+            $0.freshness == .updating
+        }
+        return "\(active) live · local sessions"
+    }
+
+    private var sessionStream: some View {
+        VStack(spacing: 8) {
+            ForEach(projectGroups) { project in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "folder")
+                        Text(project.name)
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(project.sessions.count)")
+                            .monospacedDigit()
+                    }
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 9)
+                    .frame(height: 20)
+
+                    ForEach(project.sessions) { session in
+                        Button {
+                            store.select(session.id)
+                            AgentWorkspaceController.shared.present(
+                                store: store,
+                                sessionID: session.id
+                            )
+                        } label: {
+                            CompactAgentRow(session: session)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(4)
+        .background(UnhogTheme.surface.opacity(0.72))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: UnhogTheme.cornerRadius,
+                style: .continuous
+            )
+        )
+    }
+
+    private var projectGroups: [AgentProjectGroup] {
+        AgentSessionOrganizer.projects(
+            Array(store.rootSessions.prefix(8))
+        )
     }
 
     private var loading: some View {
         HStack(spacing: 9) {
             LoadingIndicator(size: 11)
-            Text("Finding local agent sessions…")
+            Text("Connecting to local sessions…")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
@@ -121,122 +164,103 @@ struct AgentsView: View {
     }
 }
 
-private struct AgentSessionRow: View {
+private struct CompactAgentRow: View {
     let session: AgentSessionSnapshot
 
+    @State private var isHovered = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 9) {
-                providerMark
+        HStack(spacing: 10) {
+            ZStack(alignment: .bottomTrailing) {
+                AgentProviderMark(
+                    provider: session.provider,
+                    size: 20,
+                    isWorking: session.freshness == .updating
+                )
+                    .frame(width: 28, height: 28)
+                    .background(UnhogTheme.surfaceHover)
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: 8,
+                            style: .continuous
+                        )
+                    )
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(session.name)
-                            .font(.system(size: 11, weight: .semibold))
-                            .lineLimit(1)
-                        if session.freshness == .updating {
-                            Circle()
-                                .fill(UnhogTheme.healthy)
-                                .frame(width: 5, height: 5)
-                                .accessibilityLabel("Updating")
-                        }
-                    }
+                if session.freshness == .updating {
+                    Circle()
+                        .fill(UnhogTheme.healthy)
+                        .frame(width: 6, height: 6)
+                }
+            }
 
-                    Text(sessionSubtitle)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    Text(session.name)
+                        .font(.system(size: 11, weight: .semibold))
                         .lineLimit(1)
                 }
 
-                Spacer(minLength: 8)
-
-                Text(relativeUpdate)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-
-            VStack(spacing: 5) {
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(
-                            cornerRadius: 3,
-                            style: .continuous
-                        )
-                        .fill(UnhogTheme.remainder)
-
-                        RoundedRectangle(
-                            cornerRadius: 3,
-                            style: .continuous
-                        )
-                        .fill(providerColor)
-                        .frame(
-                            width: proxy.size.width
-                                * session.contextShare
-                        )
-                    }
+                HStack(spacing: 5) {
+                    Image(systemName: activitySymbol)
+                        .font(.system(size: 8, weight: .semibold))
+                    Text(activityText)
+                        .lineLimit(1)
                 }
-                .frame(height: 7)
-
-                HStack {
-                    Text("Context")
-                    Spacer()
-                    Text(contextLabel)
-                        .monospacedDigit()
-                }
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 9))
                 .foregroundStyle(.secondary)
             }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(relativeUpdate)
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(
+                        isHovered ? .primary : .tertiary
+                    )
+            }
         }
-        .padding(11)
-        .background(UnhogTheme.surface)
+        .padding(.horizontal, 9)
+        .frame(minHeight: 48)
+        .background(
+            isHovered
+                ? UnhogTheme.surfaceHover
+                : Color.clear
+        )
         .clipShape(
             RoundedRectangle(
-                cornerRadius: UnhogTheme.cornerRadius,
+                cornerRadius: 10,
                 style: .continuous
             )
         )
-        .accessibilityElement(children: .combine)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
     }
 
-    private var providerMark: some View {
-        Image(
-            systemName: session.provider == .codex
-                ? "terminal"
-                : "sparkles"
-        )
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(providerColor)
-        .frame(width: 27, height: 27)
-        .background(UnhogTheme.surfaceHover)
-        .clipShape(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-        )
+    private var activityText: String {
+        guard let activity = session.latestActivity else {
+            return session.model ?? "Waiting"
+        }
+        if let detail = activity.detail, !detail.isEmpty {
+            return "\(activity.title) · \(detail)"
+        }
+        return activity.title
     }
 
-    private var providerColor: Color {
-        session.provider == .codex
-            ? UnhogTheme.cpu
-            : UnhogTheme.selection
-    }
-
-    private var sessionSubtitle: String {
-        [
-            session.provider == .codex ? "Codex" : "Claude",
-            session.projectName,
-            session.model
-        ]
-        .compactMap { $0 }
-        .joined(separator: " · ")
-    }
-
-    private var contextLabel: String {
-        let prefix = session.contextWindowConfidence == .estimated
-            ? "~"
-            : ""
-        return "\(prefix)\(percent(session.contextShare)) · "
-            + "\(tokens(session.contextTokens)) / "
-            + tokens(session.contextWindowTokens)
+    private var activitySymbol: String {
+        switch session.latestActivity?.kind {
+        case .toolCall:
+            "hammer"
+        case .subagent:
+            "point.3.connected.trianglepath.dotted"
+        case .assistantMessage:
+            "text.bubble"
+        default:
+            "circle.dotted"
+        }
     }
 
     private var relativeUpdate: String {
@@ -247,22 +271,5 @@ private struct AgentSessionRow: View {
         if seconds < 60 { return "now" }
         if seconds < 3_600 { return "\(seconds / 60)m" }
         return "\(seconds / 3_600)h"
-    }
-
-    private func percent(_ value: Double) -> String {
-        "\(Int((value * 100).rounded()))%"
-    }
-
-    private func tokens(_ value: UInt64) -> String {
-        if value >= 1_000_000 {
-            return String(
-                format: "%.1fM",
-                Double(value) / 1_000_000
-            )
-        }
-        if value >= 1_000 {
-            return "\(Int((Double(value) / 1_000).rounded()))K"
-        }
-        return "\(value)"
     }
 }

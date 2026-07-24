@@ -84,7 +84,7 @@ struct ResourceLensView: View {
         HStack(alignment: .top, spacing: 9) {
             Image(systemName: "checkmark.circle")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(UnhogTheme.healthyForeground)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Everything looks normal")
                     .font(.system(size: 14, weight: .semibold))
@@ -107,7 +107,7 @@ struct ResourceLensView: View {
             Text(incidentEyebrow(incident))
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(0.55)
-                .foregroundStyle(UnhogTheme.destructive)
+                .foregroundStyle(incidentColor(incident))
 
             HStack(spacing: 10) {
                 ProcessIconView(group: group, size: 34)
@@ -199,6 +199,17 @@ struct ResourceLensView: View {
         guard let incident else { return "NEEDS ATTENTION" }
         return "NEEDS ATTENTION · "
             + MetricFormatting.duration(incident.duration).uppercased()
+    }
+
+    private func incidentColor(
+        _ incident: ResourceIncident?
+    ) -> Color {
+        guard let incident else {
+            return UnhogTheme.warningForeground
+        }
+        return UnhogTheme.severityForeground(
+            for: incident.severity
+        )
     }
 
     private func workloadDeck(
@@ -346,7 +357,7 @@ struct ResourceLensView: View {
                 symbol: "checkmark.circle.fill",
                 title: recoveredTitle(receipt),
                 detail: recoveredDetail(receipt),
-                tone: .secondary
+                tone: UnhogTheme.healthyForeground
             )
 
         case let .restarted(receipt):
@@ -355,7 +366,7 @@ struct ResourceLensView: View {
                 symbol: "arrow.clockwise.circle.fill",
                 title: "\(recoveryDisplayName(receipt)) is running again",
                 detail: "A matching new \(receipt.displayName) workload appeared",
-                tone: UnhogTheme.attention
+                tone: UnhogTheme.warningForeground
             )
 
         case let .partial(receipt, remaining):
@@ -456,7 +467,7 @@ struct ResourceLensView: View {
                 systemImage: "exclamationmark.circle"
             )
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(UnhogTheme.attention)
+            .foregroundStyle(UnhogTheme.warningForeground)
 
             Text("Unhog stopped \(receipt.stoppedProcessCount) original process\(receipt.stoppedProcessCount == 1 ? "" : "es").")
                 .font(.system(size: 11))

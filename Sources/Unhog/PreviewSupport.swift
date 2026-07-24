@@ -119,18 +119,31 @@ enum PreviewSupport {
     static func present() {
         guard window == nil, let store else { return }
 
-        let controller = NSHostingController(rootView: PopoverView(store: store))
+        let state = ProcessInfo.processInfo.environment[
+            "UNHOG_UI_PREVIEW_STATE"
+        ]
+        let controller: NSViewController
+        let contentSize: NSSize
+        if state == "agent-console" {
+            controller = NSHostingController(
+                rootView: AgentConsoleView(store: AgentStore())
+            )
+            contentSize = NSSize(width: 1_040, height: 680)
+        } else {
+            controller = NSHostingController(
+                rootView: PopoverView(store: store)
+            )
+            contentSize = NSSize(
+                width: UnhogTheme.popoverWidth,
+                height: UnhogTheme.popoverHeight
+            )
+        }
         let previewWindow = NSWindow(contentViewController: controller)
         previewWindow.title = "Unhog Preview"
         previewWindow.styleMask = [.titled, .closable, .fullSizeContentView]
         previewWindow.titlebarAppearsTransparent = true
         previewWindow.isMovableByWindowBackground = true
-        previewWindow.setContentSize(
-            NSSize(
-                width: UnhogTheme.popoverWidth,
-                height: UnhogTheme.popoverHeight
-            )
-        )
+        previewWindow.setContentSize(contentSize)
         previewWindow.center()
         previewWindow.makeKeyAndOrderFront(nil)
         window = previewWindow

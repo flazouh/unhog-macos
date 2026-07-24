@@ -8,6 +8,7 @@
 | 004 | Add branch-scoped stopping | HIGH | TODO |
 | 005 | Redesign the menu bar signal | HIGH | DONE |
 | 006 | Build the preferences system | HIGH | DONE |
+| 007 | Replace the native Controls popover | HIGH | REVERTED |
 
 ## Recommended execution order
 
@@ -19,6 +20,8 @@
 5. Execute `005`; its presenter depends on the preferences display mode.
 6. Execute `002` last; it depends on the signature, branch model, motion
    tokens, and final menu bar phase behavior.
+7. Execute `007` independently; it only changes the Controls presentation
+   layer and should be verified in the compact popover.
 
 Each plan is based on commit `dc191bd`. If source files have changed, the
 executor must stop and report drift instead of guessing.
