@@ -3,21 +3,29 @@ import SwiftUI
 
 struct PopoverView: View {
     @ObservedObject var store: AppStore
+    @StateObject private var storageStore = StorageStore()
+    @State private var selectedSection: PopoverSection =
+        ProcessInfo.processInfo.environment[
+            "UNHOG_UI_PREVIEW_STATE"
+        ] == "storage" ? .storage : .activity
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            PopoverSectionPicker(selection: $selectedSection)
+                .padding(.horizontal, UnhogTheme.pagePadding)
+                .padding(.bottom, 10)
 
             ScrollView {
-                VStack(spacing: 14) {
-                    ResourceLensView(store: store)
-                    activity
-
-                    if store.recoveryAssessment == nil,
-                       let message = store.message {
-                        messageRow(message)
+                Group {
+                    switch selectedSection {
+                    case .activity:
+                        activityContent
+                    case .storage:
+                        StorageView(store: storageStore)
                     }
                 }
+                .transition(.opacity)
                 .padding(.horizontal, UnhogTheme.pagePadding)
                 .padding(.bottom, 14)
             }
@@ -51,6 +59,33 @@ struct PopoverView: View {
                 "Only the verified processes that ignored the normal quit "
                     + "request will be force quit."
             )
+        }
+        .onAppear {
+            if ProcessInfo.processInfo.environment[
+                "UNHOG_UI_PREVIEW_STATE"
+            ] == "storage" {
+                storageStore.applyPreviewFixture()
+            }
+        }
+        .onChange(of: selectedSection) { _, section in
+            switch section {
+            case .activity:
+                storageStore.cancelScan()
+            case .storage:
+                storageStore.prepare()
+            }
+        }
+    }
+
+    private var activityContent: some View {
+        VStack(spacing: 14) {
+            ResourceLensView(store: store)
+            activity
+
+            if store.recoveryAssessment == nil,
+               let message = store.message {
+                messageRow(message)
+            }
         }
     }
 

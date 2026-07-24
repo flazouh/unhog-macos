@@ -14,6 +14,14 @@ enum MetricFormatting {
         )
     }
 
+    static func storage(_ bytes: UInt64) -> String {
+        guard bytes > 0 else { return "0 KB" }
+        return ByteCountFormatter.string(
+            fromByteCount: Int64(clamping: bytes),
+            countStyle: .file
+        )
+    }
+
     static func ramShare(_ share: Double) -> String {
         let percent = max(0, min(1, share)) * 100
         if percent > 0, percent < 1 {

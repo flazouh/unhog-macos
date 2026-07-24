@@ -21,6 +21,8 @@ it, stops that verified workload, then measures what changed.
   reads are limited to processes large or active enough to matter.
 - A compact 100%-of-installed-RAM map with stable app colours and an honest
   unattributed remainder.
+- A read-only Storage section with disk capacity and an on-demand, cancellable
+  scan of common folders. Storage scanning never runs automatically.
 - CPU, RAM share, estimated battery impact, duration, process count, project
   folder attribution, parent origin, and real app icons.
 - Offline bundled marks for Bun, Node.js, Nx, TypeScript, and Playwright.
@@ -79,6 +81,7 @@ SystemProcessSampler  -> immutable ProcessSample values
 ProcessGrouper        -> understandable process families
 ResourcePressureDetector -> sustained, explainable incidents
 MemoryComposition     -> installed-RAM shares and honest remainder
+StorageScanner        -> volume capacity and ranked common-folder usage
 ResourceExplainer     -> project, process chain, and top worker
 RecoveryVerifier      -> recovered, restarted, or still running
 TerminationPolicy     -> pure safety decision
@@ -101,6 +104,8 @@ immediately before sending `SIGTERM` or `SIGKILL`.
 - Battery impact is clearly labelled as an estimate derived from CPU activity.
 - Force quit is never the first action.
 - Automatic force killing is intentionally outside this MVP.
+- Storage cleanup and deletion are intentionally outside this MVP; the
+  Storage section only measures folders and reveals them in Finder.
 
 ## Known limits
 
