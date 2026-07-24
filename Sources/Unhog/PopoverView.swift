@@ -4,6 +4,7 @@ import SwiftUI
 struct PopoverView: View {
     @ObservedObject var store: AppStore
     @StateObject private var storageStore = StorageStore()
+    @StateObject private var agentStore = AgentStore()
     @State private var selectedSection: PopoverSection =
         ProcessInfo.processInfo.environment[
             "UNHOG_UI_PREVIEW_STATE"
@@ -21,6 +22,8 @@ struct PopoverView: View {
                     switch selectedSection {
                     case .activity:
                         activityContent
+                    case .agents:
+                        AgentsView(store: agentStore)
                     case .storage:
                         StorageView(store: storageStore)
                     }
@@ -70,6 +73,8 @@ struct PopoverView: View {
             } else if previewState == "storage-scanning" {
                 selectedSection = .storage
                 storageStore.applyScanningPreviewFixture()
+            } else if previewState == "agents" {
+                selectedSection = .agents
             }
         }
     }

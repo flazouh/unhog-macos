@@ -24,6 +24,8 @@ it, stops that verified workload, then measures what changed.
   unattributed remainder.
 - A read-only Storage section with disk capacity and an on-demand, cancellable
   scan of common folders. Storage scanning never runs automatically.
+- A local Agents section showing recent Codex and Claude sessions, their
+  project and model, and a compact context-window map.
 - CPU, RAM share, estimated battery impact, duration, process count, project
   folder attribution, parent origin, and real app icons.
 - Offline bundled marks for Bun, Node.js, Nx, TypeScript, and Playwright.
@@ -83,6 +85,7 @@ ProcessGrouper        -> understandable process families
 ResourcePressureDetector -> sustained, explainable incidents
 MemoryComposition     -> installed-RAM shares and honest remainder
 StorageScanner        -> volume capacity and ranked common-folder usage
+AgentSessionScanner    -> local Codex and Claude context-window snapshots
 ResourceExplainer     -> project, process chain, and top worker
 RecoveryVerifier      -> recovered, restarted, or still running
 TerminationPolicy     -> pure safety decision
