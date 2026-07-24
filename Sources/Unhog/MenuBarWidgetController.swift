@@ -114,12 +114,12 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self,
-                          dismissalPolicy.shouldDismiss(
+                          self.dismissalPolicy.shouldDismiss(
                             for: .outsideApplication
                           ) else {
                         return
                     }
-                    closePopover()
+                    self.closePopover()
                 }
             }
 
@@ -129,12 +129,12 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             guard event.keyCode == 53 else { return event }
             Task { @MainActor [weak self] in
                 guard let self,
-                      event.window === popover.contentViewController?
+                      event.window === self.popover.contentViewController?
                         .view.window,
-                      dismissalPolicy.shouldDismiss(for: .escape) else {
+                      self.dismissalPolicy.shouldDismiss(for: .escape) else {
                     return
                 }
-                closePopover()
+                self.closePopover()
             }
             return event
         }

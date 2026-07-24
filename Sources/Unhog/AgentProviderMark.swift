@@ -36,6 +36,7 @@ struct AgentProviderMark: View {
     }
 }
 
+@MainActor
 private enum ProviderBrandAssets {
     static let codex = load("codex")
     static let claude = load("claude-code")
@@ -97,6 +98,7 @@ private struct ClaudeWorkingSpark: View {
     }
 }
 
+@MainActor
 private enum ClaudeWorkingSparkFrames {
     static let color = Color(
         red: 217 / 255,
