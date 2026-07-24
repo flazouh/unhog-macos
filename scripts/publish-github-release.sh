@@ -2,7 +2,7 @@
 set -euo pipefail
 
 UNHOG_ROOT="${0:A:h:h}"
-UNHOG_REPOSITORY="flazouh/unhog-macos"
+UNHOG_REPOSITORY="flazouh/unhog"
 
 if [[ "${1:-}" == "--print-config" ]]; then
   print "GitHub repository: $UNHOG_REPOSITORY"

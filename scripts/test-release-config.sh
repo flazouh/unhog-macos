@@ -28,7 +28,7 @@ if [[ "$identity" != *"($team)"* ]]; then
   exit 1
 fi
 
-if [[ "$publish_config" != *"GitHub repository: flazouh/unhog-macos"* ]]; then
+if [[ "$publish_config" != *"GitHub repository: flazouh/unhog"* ]]; then
   print -u2 "Release downloads are not locked to the public Unhog repository."
   exit 1
 fi

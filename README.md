@@ -9,12 +9,12 @@
 A native macOS menu-bar app that turns "why is my fan screaming?" into a clear,
 honest answer and a single, reversible action.
 
-[![Latest release](https://img.shields.io/github/v/release/flazouh/unhog-macos?label=download&color=FF8D22)](https://github.com/flazouh/unhog-macos/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/flazouh/unhog-macos/total?color=15DB95)](https://github.com/flazouh/unhog-macos/releases)
-[![License: MIT](https://img.shields.io/github/license/flazouh/unhog-macos?color=4ACFFF)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/flazouh/unhog?label=download&color=FF8D22)](https://github.com/flazouh/unhog/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/flazouh/unhog/total?color=15DB95)](https://github.com/flazouh/unhog/releases)
+[![License: MIT](https://img.shields.io/github/license/flazouh/unhog?color=4ACFFF)](LICENSE)
 ![Platform: macOS 14+](https://img.shields.io/badge/macOS-14%2B-9758FF)
 
-### [⬇️  Download the latest release](https://github.com/flazouh/unhog-macos/releases/latest)
+### [⬇️  Download the latest release](https://github.com/flazouh/unhog/releases/latest)
 
 </div>
 
@@ -41,7 +41,7 @@ what actually changed.
 
 ## Install
 
-1. **[Download the latest `.dmg`](https://github.com/flazouh/unhog-macos/releases/latest)**
+1. **[Download the latest `.dmg`](https://github.com/flazouh/unhog/releases/latest)**
 2. Open it and drag **Unhog** into your **Applications** folder.
 3. Launch it. Unhog lives in your menu bar — click the icon to open it.
 

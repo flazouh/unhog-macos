@@ -53,7 +53,7 @@ signed DMG, submits it to Apple notarization, staples the ticket, and runs a
 final Gatekeeper check. Notarization is locked to a dedicated notarytool
 Keychain profile so another installed account cannot be silently selected. A
 separate publishing script revalidates the ticket and uploads the DMG and
-SHA-256 checksum to the public `flazouh/unhog-macos` GitHub Releases page.
+SHA-256 checksum to the public `flazouh/unhog` GitHub Releases page.
 
 ## Privacy declarations
 
