@@ -51,10 +51,10 @@ struct InstalledMemoryMapView: View {
         let geometry = chartGeometry(width: width)
 
         return memoryBar(geometry: geometry, width: width)
-        .animation(
-            reduceMotion ? nil : UnhogTheme.motionEnter,
-            value: revealed
-        )
+            .animation(
+                reduceMotion ? nil : UnhogTheme.motionEnter,
+                value: revealed
+            )
     }
 
     private func memoryBar(
@@ -69,11 +69,9 @@ struct InstalledMemoryMapView: View {
                     .accessibilityLabel(
                         "\(item.segment.group.displayName), "
                             + MetricFormatting.memory(item.segment.bytes)
-                            + (
-                                item.segment.group.id == focusedGroupID
-                                    ? ", current issue"
-                                    : ""
-                            )
+                            + (item.segment.group.id == focusedGroupID
+                                ? ", current issue"
+                                : "")
                     )
             }
 
@@ -152,13 +150,15 @@ struct InstalledMemoryMapView: View {
         width: CGFloat
     ) -> ChartGeometry {
         let itemCount = composition.segments.count + 1
-        let totalSpacing = segmentSpacing
+        let totalSpacing =
+            segmentSpacing
             * CGFloat(max(0, itemCount - 1))
         let usableWidth = max(0, width - totalSpacing)
         var cursor: CGFloat = 0
 
         let segments = composition.segments.map { segment in
-            let segmentWidth = usableWidth
+            let segmentWidth =
+                usableWidth
                 * segment.shareOfInstalledRAM
             let item = SegmentGeometry(
                 segment: segment,
@@ -178,7 +178,8 @@ struct InstalledMemoryMapView: View {
     private func remainderValueFits(
         width: CGFloat
     ) -> Bool {
-        let label = "Other · "
+        let label =
+            "Other · "
             + MetricFormatting.memory(composition.remainderBytes)
         return measuredTextWidth(
             label,

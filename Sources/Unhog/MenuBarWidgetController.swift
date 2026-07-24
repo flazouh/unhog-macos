@@ -61,7 +61,7 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             ),
             hostingView.centerYAnchor.constraint(
                 equalTo: button.centerYAnchor
-            )
+            ),
         ])
         statusLabel = hostingView
         refreshStatusItem()
@@ -89,7 +89,8 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
 
     private func refreshStatusItem() {
         guard let button = statusItem.button,
-              let statusLabel else {
+            let statusLabel
+        else {
             return
         }
         let presentation = store.menuBarPresentation
@@ -114,9 +115,10 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self,
-                          self.dismissalPolicy.shouldDismiss(
+                        self.dismissalPolicy.shouldDismiss(
                             for: .outsideApplication
-                          ) else {
+                        )
+                    else {
                         return
                     }
                     self.closePopover()
@@ -129,9 +131,11 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             guard event.keyCode == 53 else { return event }
             Task { @MainActor [weak self] in
                 guard let self,
-                      event.window === self.popover.contentViewController?
+                    event.window
+                        === self.popover.contentViewController?
                         .view.window,
-                      self.dismissalPolicy.shouldDismiss(for: .escape) else {
+                    self.dismissalPolicy.shouldDismiss(for: .escape)
+                else {
                     return
                 }
                 self.closePopover()
@@ -185,7 +189,8 @@ private struct MenuBarItemLabel: View {
                 Image(systemName: presentation.symbolName)
             }
             if presentation.compactLabel != nil,
-               let signature = store.menuBarDrainSignature {
+                let signature = store.menuBarDrainSignature
+            {
                 MenuBarSignatureView(signature: signature)
             } else if let label = presentation.compactLabel {
                 Text(label)
@@ -201,7 +206,8 @@ private struct MenuBarItemLabel: View {
 
 @MainActor
 private final class PassthroughHostingView<Content: View>:
-    NSHostingView<Content> {
+    NSHostingView<Content>
+{
     override func hitTest(_ point: NSPoint) -> NSView? {
         nil
     }

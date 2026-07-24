@@ -70,8 +70,11 @@ public struct AgentSessionScanner: Sendable {
         self.maximumSessionCount = maximumSessionCount
     }
 
-    public func scan(now: Date = Date()) throws
-        -> [AgentSessionSnapshot] {
+    public func scan(
+        now: Date = Date()
+    ) throws
+        -> [AgentSessionSnapshot]
+    {
         let candidates =
             recentFiles(
                 below: codexSessionsDirectory,
@@ -84,7 +87,8 @@ public struct AgentSessionScanner: Sendable {
                 now: now
             )
 
-        let parsed = candidates
+        let parsed =
+            candidates
             .sorted { $0.modifiedAt > $1.modifiedAt }
             .prefix(maximumSessionCount)
             .compactMap { candidate in
@@ -110,24 +114,27 @@ public struct AgentSessionScanner: Sendable {
     ) -> [Candidate] {
         let keys: [URLResourceKey] = [
             .isRegularFileKey,
-            .contentModificationDateKey
+            .contentModificationDateKey,
         ]
-        guard let enumerator = FileManager.default.enumerator(
-            at: root,
-            includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles]
-        ) else {
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: keys,
+                options: [.skipsHiddenFiles]
+            )
+        else {
             return []
         }
 
         var candidates: [Candidate] = []
         while let url = enumerator.nextObject() as? URL {
             guard url.pathExtension == "jsonl",
-                  let values = try? url.resourceValues(
+                let values = try? url.resourceValues(
                     forKeys: Set(keys)
-                  ),
-                  values.isRegularFile == true,
-                  let modifiedAt = values.contentModificationDate else {
+                ),
+                values.isRegularFile == true,
+                let modifiedAt = values.contentModificationDate
+            else {
                 continue
             }
             let age = max(0, now.timeIntervalSince(modifiedAt))
@@ -163,12 +170,14 @@ public struct AgentSessionScanner: Sendable {
         for (index, object) in chunks.objects.enumerated() {
             let type = string(object["type"])
             let payload = dictionary(object["payload"])
-            let timestamp = date(object["timestamp"])
+            let timestamp =
+                date(object["timestamp"])
                 ?? candidate.modifiedAt
 
             switch type {
             case "session_meta":
-                sessionID = string(payload["id"])
+                sessionID =
+                    string(payload["id"])
                     ?? string(payload["session_id"])
                     ?? sessionID
                 nickname = string(payload["agent_nickname"]) ?? nickname
@@ -178,25 +187,29 @@ public struct AgentSessionScanner: Sendable {
                 model = string(payload["model"]) ?? model
                 cwd = string(payload["cwd"]) ?? cwd
             case "event_msg"
-                where string(payload["type"]) == "task_started":
-                contextWindow = integer(
-                    payload["model_context_window"]
-                ) ?? contextWindow
+            where string(payload["type"]) == "task_started":
+                contextWindow =
+                    integer(
+                        payload["model_context_window"]
+                    ) ?? contextWindow
             case "event_msg"
-                where string(payload["type"]) == "token_count":
+            where string(payload["type"]) == "token_count":
                 let info = dictionary(payload["info"])
                 let usage = dictionary(info["last_token_usage"])
-                contextTokens = integer(
-                    usage["input_tokens"]
-                ) ?? contextTokens
-                outputTokens = integer(
-                    usage["output_tokens"]
-                ) ?? outputTokens
-                contextWindow = integer(
-                    info["model_context_window"]
-                ) ?? contextWindow
+                contextTokens =
+                    integer(
+                        usage["input_tokens"]
+                    ) ?? contextTokens
+                outputTokens =
+                    integer(
+                        usage["output_tokens"]
+                    ) ?? outputTokens
+                contextWindow =
+                    integer(
+                        info["model_context_window"]
+                    ) ?? contextWindow
             case "event_msg"
-                where string(payload["type"]) == "user_message":
+            where string(payload["type"]) == "user_message":
                 if let message = string(payload["message"]) {
                     timeline.append(
                         entry(
@@ -209,9 +222,10 @@ public struct AgentSessionScanner: Sendable {
                     )
                 }
             case "event_msg"
-                where string(payload["type"]) == "agent_message":
+            where string(payload["type"]) == "agent_message":
                 if let message = string(payload["message"]),
-                   isDisplayableAgentMessage(message) {
+                    isDisplayableAgentMessage(message)
+                {
                     timeline.append(
                         entry(
                             id: "codex-agent-\(index)",
@@ -223,13 +237,15 @@ public struct AgentSessionScanner: Sendable {
                     )
                 }
             case "response_item"
-                where string(payload["type"]) == "function_call"
-                    || string(payload["type"]) == "custom_tool_call"
-                    || string(payload["type"]) == "tool_search_call":
-                let name = string(payload["name"])
+            where string(payload["type"]) == "function_call"
+                || string(payload["type"]) == "custom_tool_call"
+                || string(payload["type"]) == "tool_search_call":
+                let name =
+                    string(payload["name"])
                     ?? string(payload["tool"])
                     ?? "Tool"
-                let callID = string(payload["call_id"])
+                let callID =
+                    string(payload["call_id"])
                     ?? "codex-tool-\(index)"
                 timeline.append(
                     AgentTimelineEntry(
@@ -247,29 +263,34 @@ public struct AgentSessionScanner: Sendable {
                 )
                 toolTimelineIndexByID[callID] = timeline.count - 1
             case "response_item"
-                where string(payload["type"]) == "function_call_output"
-                    || string(payload["type"]) == "custom_tool_call_output"
-                    || string(payload["type"]) == "tool_search_output":
+            where string(payload["type"]) == "function_call_output"
+                || string(payload["type"]) == "custom_tool_call_output"
+                || string(payload["type"]) == "tool_search_output":
                 if let callID = string(payload["call_id"]),
-                   let timelineIndex = toolTimelineIndexByID[callID] {
+                    let timelineIndex = toolTimelineIndexByID[callID]
+                {
                     timeline[timelineIndex].state = .completed
                     var details = timeline[timelineIndex].toolDetails
                     details?.output = detailedValue(payload["output"])
                     timeline[timelineIndex].toolDetails = details
                 }
             case "event_msg"
-                where string(payload["type"]) == "sub_agent_activity":
-                guard let threadID = string(
-                    payload["agent_thread_id"]
-                ) else {
+            where string(payload["type"]) == "sub_agent_activity":
+                guard
+                    let threadID = string(
+                        payload["agent_thread_id"]
+                    )
+                else {
                     break
                 }
-                let path = string(payload["agent_path"])
+                let path =
+                    string(payload["agent_path"])
                     ?? "/subagent"
                 let activity = string(payload["kind"]) ?? "interacted"
-                let activityDate = millisecondsDate(
-                    payload["occurred_at_ms"]
-                ) ?? timestamp
+                let activityDate =
+                    millisecondsDate(
+                        payload["occurred_at_ms"]
+                    ) ?? timestamp
                 let snapshot = AgentSubagentSnapshot(
                     id: threadID,
                     name: humanized(
@@ -337,12 +358,14 @@ public struct AgentSessionScanner: Sendable {
 
         for (index, object) in chunks.tailObjects.enumerated() {
             let objectType = string(object["type"])
-            sessionID = string(object["sessionId"])
+            sessionID =
+                string(object["sessionId"])
                 ?? string(object["session_id"])
                 ?? sessionID
             cwd = string(object["cwd"]) ?? cwd
             sessionKind = string(object["sessionKind"]) ?? sessionKind
-            let timestamp = date(object["timestamp"])
+            let timestamp =
+                date(object["timestamp"])
                 ?? candidate.modifiedAt
             let message = dictionary(object["message"])
 
@@ -351,15 +374,16 @@ public struct AgentSessionScanner: Sendable {
                 for rawBlock in content {
                     let block = dictionary(rawBlock)
                     guard string(block["type"]) == "tool_result",
-                          let toolID = string(block["tool_use_id"]),
-                          let timelineIndex =
-                              toolTimelineIndexByID[toolID] else {
+                        let toolID = string(block["tool_use_id"]),
+                        let timelineIndex =
+                            toolTimelineIndexByID[toolID]
+                    else {
                         continue
                     }
                     timeline[timelineIndex].state =
                         block["is_error"] as? Bool == true
-                            ? .failed
-                            : .completed
+                        ? .failed
+                        : .completed
                     var details = timeline[timelineIndex].toolDetails
                     details?.output = detailedValue(block["content"])
                     timeline[timelineIndex].toolDetails = details
@@ -382,16 +406,20 @@ public struct AgentSessionScanner: Sendable {
             model = string(message["model"]) ?? model
             let usage = dictionary(message["usage"])
             let input = integer(usage["input_tokens"]) ?? 0
-            let cacheCreation = integer(
-                usage["cache_creation_input_tokens"]
-            ) ?? 0
-            let cacheRead = integer(
-                usage["cache_read_input_tokens"]
-            ) ?? 0
-            outputTokens = integer(
-                usage["output_tokens"]
-            ) ?? outputTokens
-            contextTokens = input
+            let cacheCreation =
+                integer(
+                    usage["cache_creation_input_tokens"]
+                ) ?? 0
+            let cacheRead =
+                integer(
+                    usage["cache_read_input_tokens"]
+                ) ?? 0
+            outputTokens =
+                integer(
+                    usage["output_tokens"]
+                ) ?? outputTokens
+            contextTokens =
+                input
                 + cacheCreation
                 + cacheRead
                 + outputTokens
@@ -414,7 +442,8 @@ public struct AgentSessionScanner: Sendable {
                     }
                 case "tool_use":
                     let name = string(block["name"]) ?? "Tool"
-                    let toolID = string(block["id"])
+                    let toolID =
+                        string(block["id"])
                         ?? "claude-tool-\(index)-\(contentIndex)"
                     timeline.append(
                         AgentTimelineEntry(
@@ -536,9 +565,10 @@ private struct LogChunks {
         }
         return lines.compactMap { line in
             guard let data = line.data(using: .utf8),
-                  let object = try? JSONSerialization.jsonObject(
+                let object = try? JSONSerialization.jsonObject(
                     with: data
-                  ) as? [String: Any] else {
+                ) as? [String: Any]
+            else {
                 return nil
             }
             return object
@@ -610,9 +640,10 @@ private func subagentState(_ activity: String) -> AgentSubagentState {
 
 private func summarizedArguments(_ payload: [String: Any]) -> String? {
     guard let arguments = string(payload["arguments"]),
-          let data = arguments.data(using: .utf8),
-          let object = try? JSONSerialization.jsonObject(with: data),
-          let dictionary = object as? [String: Any] else {
+        let data = arguments.data(using: .utf8),
+        let object = try? JSONSerialization.jsonObject(with: data),
+        let dictionary = object as? [String: Any]
+    else {
         return nil
     }
     return summarizedInput(dictionary)
@@ -621,9 +652,10 @@ private func summarizedArguments(_ payload: [String: Any]) -> String? {
 private func detailedArguments(_ payload: [String: Any]) -> String? {
     if let arguments = string(payload["arguments"]) {
         guard let data = arguments.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(
+            let object = try? JSONSerialization.jsonObject(
                 with: data
-              ) else {
+            )
+        else {
             return clean(arguments)
         }
         return detailedValue(object)
@@ -641,14 +673,15 @@ private func detailedValue(_ value: Any?) -> String? {
         return clean(value)
     }
     guard JSONSerialization.isValidJSONObject(value),
-          let data = try? JSONSerialization.data(
+        let data = try? JSONSerialization.data(
             withJSONObject: value,
             options: [
                 .prettyPrinted,
                 .sortedKeys,
-                .withoutEscapingSlashes
+                .withoutEscapingSlashes,
             ]
-          ) else {
+        )
+    else {
         return String(describing: value)
     }
     return String(data: data, encoding: .utf8)
@@ -662,7 +695,7 @@ private func summarizedInput(_ input: [String: Any]) -> String? {
         "query",
         "q",
         "target",
-        "description"
+        "description",
     ]
     for key in keys {
         guard let value = input[key] as? String, !value.isEmpty else {
@@ -696,7 +729,8 @@ private func isDisplayableAgentMessage(_ message: String) -> Bool {
     let value = clean(message)
     guard !value.isEmpty else { return false }
     if value.hasPrefix("{\"outcome\":")
-        || value.hasPrefix("{\"status\":") {
+        || value.hasPrefix("{\"status\":")
+    {
         return false
     }
     return true

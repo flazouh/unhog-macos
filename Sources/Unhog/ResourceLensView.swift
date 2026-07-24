@@ -29,7 +29,8 @@ struct ResourceLensView: View {
         } else if let assessment = store.recoveryAssessment {
             recovery(assessment)
         } else if let group = store.resolvingGroup,
-                  store.stopState != .idle {
+            store.stopState != .idle
+        {
             focusedWorkload(
                 group: group,
                 incident: store.incidents.first { $0.id == group.id }
@@ -216,7 +217,8 @@ struct ResourceLensView: View {
         _ group: ProcessGroup,
         signature: DrainSignature
     ) -> String {
-        let processes = "\(group.processCount) process"
+        let processes =
+            "\(group.processCount) process"
             + (group.processCount == 1 ? "" : "es")
         return "\(processes) · \(signature.impact.rawValue.lowercased()) energy use"
     }
@@ -226,7 +228,8 @@ struct ResourceLensView: View {
         switch store.capability(for: group) {
         case .allowed:
             if isStopping(group) {
-                Button {} label: {
+                Button {
+                } label: {
                     HStack(spacing: 7) {
                         LoadingIndicator(size: 11)
                         Text(stoppingTitle(group))
@@ -469,9 +472,11 @@ struct ResourceLensView: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(UnhogTheme.warningForeground)
 
-            Text("Unhog stopped \(receipt.stoppedProcessCount) original process\(receipt.stoppedProcessCount == 1 ? "" : "es").")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+            Text(
+                "Unhog stopped \(receipt.stoppedProcessCount) original process\(receipt.stoppedProcessCount == 1 ? "" : "es")."
+            )
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
                 if store.stopState == .forceAvailable(receipt.originalGroupID) {
@@ -485,7 +490,8 @@ struct ResourceLensView: View {
                     }
                     .buttonStyle(BorderlessActionStyle(tone: .secondary))
                 } else if store.stopState
-                    == .forceKilling(receipt.originalGroupID) {
+                    == .forceKilling(receipt.originalGroupID)
+                {
                     LoadingIndicator(size: 11)
                     Text("Force quitting…")
                         .font(.system(size: 11, weight: .medium))
@@ -545,9 +551,10 @@ struct ResourceLensView: View {
     }
 
     private func isStackWorkload(_ group: ProcessGroup) -> Bool {
-        let root = group.processes.first {
-            $0.identity.pid == group.id.rootPID
-        } ?? group.processes.first
+        let root =
+            group.processes.first {
+                $0.identity.pid == group.id.rootPID
+            } ?? group.processes.first
         return root?.executablePath.contains(".app/") != true
     }
 

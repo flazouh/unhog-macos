@@ -52,9 +52,10 @@ enum WorkloadPresentation {
         for group: ProcessGroup,
         includesProjectName: Bool = true
     ) -> String {
-        let root = group.processes.first {
-            $0.identity.pid == group.id.rootPID
-        } ?? group.processes.first
+        let root =
+            group.processes.first {
+                $0.identity.pid == group.id.rootPID
+            } ?? group.processes.first
         if root?.executablePath.contains(".app/") == true {
             return "Quit \(group.displayName)"
         }

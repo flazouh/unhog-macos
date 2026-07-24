@@ -9,7 +9,8 @@ public struct ProcessGrouper: Sendable {
         var result: [ProcessGroup] = []
 
         for specialKind in [ProcessFamilyKind.playwright, .typeScript, .nx] {
-            let allMembers = samples
+            let allMembers =
+                samples
                 .filter { classify($0) == specialKind }
                 .sorted { $0.identity.pid < $1.identity.pid }
 
@@ -100,9 +101,10 @@ public struct ProcessGrouper: Sendable {
         var visited = Set<Int32>()
 
         while current.parentPID > 1,
-              visited.insert(current.identity.pid).inserted,
-              let parent = byPID[current.parentPID],
-              parent.ownerUID == current.ownerUID {
+            visited.insert(current.identity.pid).inserted,
+            let parent = byPID[current.parentPID],
+            parent.ownerUID == current.ownerUID
+        {
             current = parent
         }
 
@@ -118,8 +120,9 @@ public struct ProcessGrouper: Sendable {
         var visited = Set<Int32>()
 
         while memberPIDs.contains(root.parentPID),
-              visited.insert(root.identity.pid).inserted,
-              let parent = byPID[root.parentPID] {
+            visited.insert(root.identity.pid).inserted,
+            let parent = byPID[root.parentPID]
+        {
             root = parent
         }
 

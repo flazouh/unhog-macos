@@ -32,7 +32,7 @@ final class AgentWorkspaceController: NSObject, NSWindowDelegate {
             .closable,
             .miniaturizable,
             .resizable,
-            .fullSizeContentView
+            .fullSizeContentView,
         ]
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -150,7 +150,7 @@ struct AgentConsoleView: View {
                                     session: session,
                                     isSelected:
                                         store.selectedSession?.id
-                                            == session.id
+                                        == session.id
                                 ) {
                                     store.select(session.id)
                                 }
@@ -173,7 +173,7 @@ struct AgentConsoleView: View {
             [
                 $0.name,
                 $0.projectName,
-                $0.model
+                $0.model,
             ]
             .compactMap { $0 }
             .contains {
@@ -318,7 +318,7 @@ struct AgentConsoleView: View {
             )
             .textFieldStyle(.plain)
             .font(.system(size: 11))
-            .lineLimit(1 ... 6)
+            .lineLimit(1...6)
             .padding(.horizontal, 11)
             .padding(.top, 10)
             .padding(.bottom, 7)
@@ -402,9 +402,11 @@ struct AgentConsoleView: View {
     private func commandError(
         _ session: AgentSessionSnapshot
     ) -> String {
-        guard case let .failed(message) = store.status(
-            for: session.id
-        ) else {
+        guard
+            case let .failed(message) = store.status(
+                for: session.id
+            )
+        else {
             return ""
         }
         return message
@@ -883,15 +885,13 @@ private struct MarkdownText: View {
     }
 
     private var attributed: AttributedString {
-        (
-            try? AttributedString(
-                markdown: source,
-                options: .init(
-                    interpretedSyntax: .full,
-                    failurePolicy: .returnPartiallyParsedIfPossible
-                )
+        (try? AttributedString(
+            markdown: source,
+            options: .init(
+                interpretedSyntax: .full,
+                failurePolicy: .returnPartiallyParsedIfPossible
             )
-        ) ?? AttributedString(source)
+        )) ?? AttributedString(source)
     }
 }
 

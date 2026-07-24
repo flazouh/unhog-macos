@@ -80,9 +80,11 @@ public struct ProcessBranchResolver: Sendable {
         rootedAt identity: ProcessIdentity,
         in group: ProcessGroup
     ) -> ProcessBranch? {
-        guard let root = group.processes.first(where: {
-            $0.identity == identity
-        }) else {
+        guard
+            let root = group.processes.first(where: {
+                $0.identity == identity
+            })
+        else {
             return nil
         }
 
@@ -97,7 +99,8 @@ public struct ProcessBranchResolver: Sendable {
         while !queue.isEmpty {
             let process = queue.removeFirst()
             if process.identity.pid == group.id.rootPID,
-               process.identity != root.identity {
+                process.identity != root.identity
+            {
                 continue
             }
             guard visited.insert(process.identity).inserted else {
@@ -129,10 +132,8 @@ public struct ProcessBranchResolver: Sendable {
         return group.processes
             .filter {
                 $0.identity.pid != group.id.rootPID
-                    && (
-                        $0.parentPID == group.id.rootPID
-                            || !memberPIDs.contains($0.parentPID)
-                    )
+                    && ($0.parentPID == group.id.rootPID
+                        || !memberPIDs.contains($0.parentPID))
             }
             .compactMap {
                 branch(rootedAt: $0.identity, in: group)

@@ -10,7 +10,7 @@ struct TerminationPolicyTests {
             ownerUID: 501,
             processes: [
                 process(pid: 10, parent: 1, name: "node", ownerUID: 501),
-                process(pid: 11, parent: 10, name: "Chromium", ownerUID: 501)
+                process(pid: 11, parent: 10, name: "Chromium", ownerUID: 501),
             ]
         )
 

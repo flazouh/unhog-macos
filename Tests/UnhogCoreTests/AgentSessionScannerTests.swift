@@ -52,12 +52,13 @@ struct AgentSessionScannerTests {
             fixture.scanner.scan(now: Date()).first
         )
 
-        #expect(session.timeline.map(\.kind) == [
-            .userMessage,
-            .toolCall,
-            .subagent,
-            .assistantMessage
-        ])
+        #expect(
+            session.timeline.map(\.kind) == [
+                .userMessage,
+                .toolCall,
+                .subagent,
+                .assistantMessage,
+            ])
         #expect(session.timeline[1].title == "exec command")
         #expect(session.timeline[1].detail == "ps aux")
         #expect(session.timeline[1].state == .completed)
@@ -77,15 +78,16 @@ struct AgentSessionScannerTests {
             session.timeline[2].relatedSessionID
                 == "codex:child-1"
         )
-        #expect(session.subagents == [
-            AgentSubagentSnapshot(
-                id: "child-1",
-                name: "memory probe",
-                path: "/root/memory_probe",
-                state: .working,
-                updatedAt: Date(timeIntervalSince1970: 1_784_887_203)
-            )
-        ])
+        #expect(
+            session.subagents == [
+                AgentSubagentSnapshot(
+                    id: "child-1",
+                    name: "memory probe",
+                    path: "/root/memory_probe",
+                    state: .working,
+                    updatedAt: Date(timeIntervalSince1970: 1_784_887_203)
+                )
+            ])
         #expect(session.latestActivity?.title == "Agent replied")
     }
 
@@ -154,11 +156,12 @@ struct AgentSessionScannerTests {
             fixture.scanner.scan(now: Date()).first
         )
 
-        #expect(session.timeline.map(\.kind) == [
-            .userMessage,
-            .toolCall,
-            .assistantMessage
-        ])
+        #expect(
+            session.timeline.map(\.kind) == [
+                .userMessage,
+                .toolCall,
+                .assistantMessage,
+            ])
         #expect(session.timeline[1].title == "Read")
         #expect(session.timeline[1].detail == "Package.swift")
         #expect(session.timeline[1].state == .completed)
@@ -188,14 +191,15 @@ struct AgentSessionScannerTests {
             model: "gpt-5.6-sol"
         )
         #expect(codex.executableName == "codex")
-        #expect(codex.arguments == [
-            "exec",
-            "resume",
-            "--model",
-            "gpt-5.6-sol",
-            "thread-1",
-            "Continue"
-        ])
+        #expect(
+            codex.arguments == [
+                "exec",
+                "resume",
+                "--model",
+                "gpt-5.6-sol",
+                "thread-1",
+                "Continue",
+            ])
 
         let claude = AgentCommandBuilder.command(
             provider: .claude,
@@ -204,14 +208,15 @@ struct AgentSessionScannerTests {
             model: "claude-fable-5"
         )
         #expect(claude.executableName == "claude")
-        #expect(claude.arguments == [
-            "--print",
-            "--resume",
-            "thread-2",
-            "--model",
-            "claude-fable-5",
-            "Review this"
-        ])
+        #expect(
+            claude.arguments == [
+                "--print",
+                "--resume",
+                "thread-2",
+                "--model",
+                "claude-fable-5",
+                "Review this",
+            ])
     }
 
     @Test
@@ -231,16 +236,17 @@ struct AgentSessionScannerTests {
                 id: "codex:three",
                 project: "Unhog",
                 updatedAt: Date(timeIntervalSince1970: 20)
-            )
+            ),
         ]
 
         let projects = AgentSessionOrganizer.projects(sessions)
 
         #expect(projects.map(\.name) == ["FluentAI", "Unhog"])
-        #expect(projects[1].sessions.map(\.id) == [
-            "codex:three",
-            "codex:one"
-        ])
+        #expect(
+            projects[1].sessions.map(\.id) == [
+                "codex:three",
+                "codex:one",
+            ])
     }
 
     private func session(

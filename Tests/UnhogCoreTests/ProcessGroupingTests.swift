@@ -6,10 +6,20 @@ struct ProcessGroupingTests {
     @Test("Playwright helpers are grouped as one workload")
     func groupsPlaywrightHelpers() {
         let samples = [
-            sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 3, memory: 100),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7, memory: 80),
-            sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Users/example/Library/Caches/ms-playwright/chromium_headless_shell", cpu: 180, memory: 300),
-            sample(pid: 121, parent: 120, name: "Chromium Helper (GPU)", path: "/Users/example/Library/Caches/ms-playwright/Chromium Helper", cpu: 130, memory: 400)
+            sample(
+                pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude",
+                cpu: 3, memory: 100),
+            sample(
+                pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7,
+                memory: 80),
+            sample(
+                pid: 120, parent: 110, name: "chromium_headless_shell",
+                path: "/Users/example/Library/Caches/ms-playwright/chromium_headless_shell",
+                cpu: 180, memory: 300),
+            sample(
+                pid: 121, parent: 120, name: "Chromium Helper (GPU)",
+                path: "/Users/example/Library/Caches/ms-playwright/Chromium Helper", cpu: 130,
+                memory: 400),
         ]
 
         let groups = ProcessGrouper().groups(from: samples)
@@ -25,9 +35,15 @@ struct ProcessGroupingTests {
     @Test("Sibling TypeScript servers remain separate kill targets")
     func separatesTypeScriptServers() {
         let samples = [
-            sample(pid: 200, parent: 1, name: "Code", path: "/Applications/Visual Studio Code.app/Code", cpu: 2, memory: 100),
-            sample(pid: 201, parent: 200, name: "tsserver", path: "/node_modules/typescript/lib/tsserver.js", cpu: 80, memory: 600),
-            sample(pid: 202, parent: 200, name: "typescript-language-server", path: "/bin/typescript-language-server", cpu: 40, memory: 500)
+            sample(
+                pid: 200, parent: 1, name: "Code",
+                path: "/Applications/Visual Studio Code.app/Code", cpu: 2, memory: 100),
+            sample(
+                pid: 201, parent: 200, name: "tsserver",
+                path: "/node_modules/typescript/lib/tsserver.js", cpu: 80, memory: 600),
+            sample(
+                pid: 202, parent: 200, name: "typescript-language-server",
+                path: "/bin/typescript-language-server", cpu: 40, memory: 500),
         ]
 
         let groups = ProcessGrouper().groups(from: samples)
@@ -42,11 +58,21 @@ struct ProcessGroupingTests {
     @Test("Tagged sibling launchers remain separate kill targets")
     func separatesTaggedSiblingLaunchers() {
         let samples = [
-            sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 1, memory: 10),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 5, memory: 20, tags: [.playwright]),
-            sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
-            sample(pid: 210, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7, memory: 30, tags: [.playwright]),
-            sample(pid: 220, parent: 210, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 120, memory: 300)
+            sample(
+                pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude",
+                cpu: 1, memory: 10),
+            sample(
+                pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 5,
+                memory: 20, tags: [.playwright]),
+            sample(
+                pid: 120, parent: 110, name: "chromium_headless_shell",
+                path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
+            sample(
+                pid: 210, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 7,
+                memory: 30, tags: [.playwright]),
+            sample(
+                pid: 220, parent: 210, name: "chromium_headless_shell",
+                path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 120, memory: 300),
         ]
 
         let playwright = ProcessGrouper()
@@ -62,12 +88,24 @@ struct ProcessGroupingTests {
     @Test("Unrelated Playwright sessions are separate kill targets")
     func separatesPlaywrightSessions() {
         let samples = [
-            sample(pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude", cpu: 1, memory: 10),
-            sample(pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 1, memory: 10),
-            sample(pid: 120, parent: 110, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
-            sample(pid: 200, parent: 1, name: "Terminal", path: "/System/Applications/Utilities/Terminal.app/Terminal", cpu: 1, memory: 10),
-            sample(pid: 210, parent: 200, name: "node", path: "/opt/homebrew/bin/node", cpu: 1, memory: 10),
-            sample(pid: 220, parent: 210, name: "chromium_headless_shell", path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 120, memory: 300)
+            sample(
+                pid: 100, parent: 1, name: "Claude", path: "/Applications/Claude.app/Claude",
+                cpu: 1, memory: 10),
+            sample(
+                pid: 110, parent: 100, name: "bun", path: "/Users/example/.bun/bin/bun", cpu: 1,
+                memory: 10),
+            sample(
+                pid: 120, parent: 110, name: "chromium_headless_shell",
+                path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 100, memory: 200),
+            sample(
+                pid: 200, parent: 1, name: "Terminal",
+                path: "/System/Applications/Utilities/Terminal.app/Terminal", cpu: 1, memory: 10),
+            sample(
+                pid: 210, parent: 200, name: "node", path: "/opt/homebrew/bin/node", cpu: 1,
+                memory: 10),
+            sample(
+                pid: 220, parent: 210, name: "chromium_headless_shell",
+                path: "/Caches/ms-playwright/chromium_headless_shell", cpu: 120, memory: 300),
         ]
 
         let playwright = ProcessGrouper()
@@ -83,8 +121,12 @@ struct ProcessGroupingTests {
     @Test("Ordinary descendants stay under their top-level application")
     func groupsOrdinaryApplicationTree() {
         let samples = [
-            sample(pid: 300, parent: 1, name: "Arc", path: "/Applications/Arc.app/Arc", cpu: 20, memory: 200),
-            sample(pid: 301, parent: 300, name: "Arc Helper", path: "/Applications/Arc.app/Arc Helper", cpu: 40, memory: 300)
+            sample(
+                pid: 300, parent: 1, name: "Arc", path: "/Applications/Arc.app/Arc", cpu: 20,
+                memory: 200),
+            sample(
+                pid: 301, parent: 300, name: "Arc Helper", path: "/Applications/Arc.app/Arc Helper",
+                cpu: 40, memory: 300),
         ]
 
         let groups = ProcessGrouper().groups(from: samples)

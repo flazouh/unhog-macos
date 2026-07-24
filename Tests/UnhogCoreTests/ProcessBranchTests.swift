@@ -101,7 +101,7 @@ struct ProcessBranchTests {
                 parent: 100,
                 name: "Trace viewer",
                 memory: 220_000_000
-            )
+            ),
         ]
         return makeGroup(samples)
     }

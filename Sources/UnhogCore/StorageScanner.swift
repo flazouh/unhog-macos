@@ -73,7 +73,7 @@ public struct StorageLocation: Identifiable, Hashable, Sendable {
                 id: "caches",
                 name: "Caches",
                 url: homeDirectory.appending(path: "Library/Caches")
-            )
+            ),
         ]
     }
 }
@@ -147,12 +147,8 @@ public struct StorageScanner: Sendable {
         let attributes = try FileManager.default.attributesOfFileSystem(
             forPath: url.path
         )
-        let total = (
-            attributes[.systemSize] as? NSNumber
-        )?.uint64Value ?? 0
-        let available = (
-            attributes[.systemFreeSize] as? NSNumber
-        )?.uint64Value ?? 0
+        let total = (attributes[.systemSize] as? NSNumber)?.uint64Value ?? 0
+        let available = (attributes[.systemFreeSize] as? NSNumber)?.uint64Value ?? 0
         return StorageVolumeSnapshot(
             totalBytes: total,
             availableBytes: available
@@ -193,7 +189,8 @@ public struct StorageScanner: Sendable {
                 )
             }
             results.append(usage)
-            let nextLocationID = locations.indices.contains(index + 1)
+            let nextLocationID =
+                locations.indices.contains(index + 1)
                 ? locations[index + 1].id
                 : nil
             onProgress(
@@ -244,20 +241,22 @@ public struct StorageScanner: Sendable {
     ) throws -> StorageFolderUsage {
         let fileManager = FileManager.default
         var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(
-            atPath: location.url.path,
-            isDirectory: &isDirectory
-        ), isDirectory.boolValue,
-        fileManager.isReadableFile(atPath: location.url.path),
-        let enumerator = fileManager.enumerator(
-            at: location.url,
-            includingPropertiesForKeys: [
-                .isRegularFileKey,
-                .isSymbolicLinkKey,
-                .fileSizeKey
-            ],
-            options: []
-        ) else {
+        guard
+            fileManager.fileExists(
+                atPath: location.url.path,
+                isDirectory: &isDirectory
+            ), isDirectory.boolValue,
+            fileManager.isReadableFile(atPath: location.url.path),
+            let enumerator = fileManager.enumerator(
+                at: location.url,
+                includingPropertiesForKeys: [
+                    .isRegularFileKey,
+                    .isSymbolicLinkKey,
+                    .fileSizeKey,
+                ],
+                options: []
+            )
+        else {
             return unavailableUsage(for: location)
         }
 
@@ -271,13 +270,15 @@ public struct StorageScanner: Sendable {
                 try Task.checkCancellation()
             }
 
-            guard let values = try? fileURL.resourceValues(
-                forKeys: [
-                    .isRegularFileKey,
-                    .isSymbolicLinkKey,
-                    .fileSizeKey
-                ]
-            ) else {
+            guard
+                let values = try? fileURL.resourceValues(
+                    forKeys: [
+                        .isRegularFileKey,
+                        .isSymbolicLinkKey,
+                        .fileSizeKey,
+                    ]
+                )
+            else {
                 continue
             }
             if values.isSymbolicLink == true {

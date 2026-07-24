@@ -30,7 +30,8 @@ public struct AppMemorySegment: Identifiable, Hashable, Sendable {
         self.id = group.id
         self.group = group
         self.bytes = group.memoryBytes
-        self.shareOfInstalledRAM = installedBytes > 0
+        self.shareOfInstalledRAM =
+            installedBytes > 0
             ? min(1, Double(group.memoryBytes) / Double(installedBytes))
             : 0
     }
@@ -52,7 +53,8 @@ public struct MemoryComposition: Hashable, Sendable {
         var visibleSegments: [AppMemorySegment] = []
         var foundOverlap = false
 
-        let candidates = groups
+        let candidates =
+            groups
             .sorted { left, right in
                 if left.id == prioritizedGroupID {
                     return right.id != prioritizedGroupID

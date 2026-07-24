@@ -5,7 +5,7 @@ enum UnhogResourceBundle {
         let bundleName = "Unhog_Unhog.bundle"
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent(bundleName),
-            Bundle.main.bundleURL.appendingPathComponent(bundleName)
+            Bundle.main.bundleURL.appendingPathComponent(bundleName),
         ]
         for candidate in candidates.compactMap({ $0 }) {
             if let bundle = Bundle(url: candidate) {

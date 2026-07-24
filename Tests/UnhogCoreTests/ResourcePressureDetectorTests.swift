@@ -98,8 +98,12 @@ struct ResourcePressureDetectorTests {
         let start = Date(timeIntervalSince1970: 1_000)
 
         _ = detector.evaluate([group(cpu: 200, memory: 900)], at: start)
-        #expect(detector.evaluate([group(cpu: 20, memory: 900)], at: start.addingTimeInterval(5)).isEmpty)
-        #expect(detector.evaluate([group(cpu: 200, memory: 900)], at: start.addingTimeInterval(11)).isEmpty)
+        #expect(
+            detector.evaluate([group(cpu: 20, memory: 900)], at: start.addingTimeInterval(5))
+                .isEmpty)
+        #expect(
+            detector.evaluate([group(cpu: 200, memory: 900)], at: start.addingTimeInterval(11))
+                .isEmpty)
     }
 
     @Test("Alternating CPU and memory pressure does not fake sustained pressure")
@@ -116,8 +120,12 @@ struct ResourcePressureDetectorTests {
         let start = Date(timeIntervalSince1970: 1_000)
 
         #expect(detector.evaluate([group(cpu: 200, memory: 900)], at: start).isEmpty)
-        #expect(detector.evaluate([group(cpu: 20, memory: 2_000)], at: start.addingTimeInterval(8)).isEmpty)
-        #expect(detector.evaluate([group(cpu: 200, memory: 900)], at: start.addingTimeInterval(16)).isEmpty)
+        #expect(
+            detector.evaluate([group(cpu: 20, memory: 2_000)], at: start.addingTimeInterval(8))
+                .isEmpty)
+        #expect(
+            detector.evaluate([group(cpu: 200, memory: 900)], at: start.addingTimeInterval(16))
+                .isEmpty)
     }
 
     private func group(

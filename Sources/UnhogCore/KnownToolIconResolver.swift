@@ -31,9 +31,10 @@ public enum KnownToolIconResolver {
             break
         }
 
-        let root = group.processes.first {
-            $0.identity.pid == group.id.rootPID
-        } ?? group.processes.first
+        let root =
+            group.processes.first {
+                $0.identity.pid == group.id.rootPID
+            } ?? group.processes.first
         let executableName = root.map {
             ($0.executablePath as NSString).lastPathComponent.lowercased()
         }

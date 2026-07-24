@@ -46,7 +46,8 @@ public struct MenuBarPresentation: Equatable, Sendable {
             )
         case .adaptive:
             if case .restarted = phase, let leadingGroup {
-                let label = leadingGroup.cpuPercent >= 100
+                let label =
+                    leadingGroup.cpuPercent >= 100
                     ? cpuLabel(leadingGroup.cpuPercent)
                     : memoryShareLabel(
                         bytes: leadingGroup.memoryBytes,
@@ -196,13 +197,15 @@ public struct MenuBarPresentation: Equatable, Sendable {
         switch incident.signal {
         case .cpu:
             let cores = decimal(incident.group.cpuPercent / 100)
-            return "Unhog. \(incident.group.displayName) needs attention and is using about \(cores) processor cores."
+            return
+                "Unhog. \(incident.group.displayName) needs attention and is using about \(cores) processor cores."
         case .memory:
             let share = memoryShareLabel(
                 bytes: incident.group.memoryBytes,
                 installed: installedMemoryBytes
             )
-            return "Unhog. \(incident.group.displayName) needs attention and is using \(share) of installed memory."
+            return
+                "Unhog. \(incident.group.displayName) needs attention and is using \(share) of installed memory."
         }
     }
 

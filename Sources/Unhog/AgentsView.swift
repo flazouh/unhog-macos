@@ -13,7 +13,8 @@ struct AgentsView: View {
             if store.isLoading, store.sessions.isEmpty {
                 loading
             } else if let errorMessage = store.errorMessage,
-                      store.sessions.isEmpty {
+                store.sessions.isEmpty
+            {
                 emptyState(
                     symbol: "exclamationmark.triangle",
                     title: "Agent activity is unavailable",
@@ -177,14 +178,14 @@ private struct CompactAgentRow: View {
                     size: 20,
                     isWorking: session.freshness == .updating
                 )
-                    .frame(width: 28, height: 28)
-                    .background(UnhogTheme.surfaceHover)
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: 8,
-                            style: .continuous
-                        )
+                .frame(width: 28, height: 28)
+                .background(UnhogTheme.surfaceHover)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 8,
+                        style: .continuous
                     )
+                )
 
                 if session.freshness == .updating {
                     Circle()

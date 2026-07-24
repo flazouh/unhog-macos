@@ -211,27 +211,27 @@ struct ProcessActivityRow: View {
                                 .lineLimit(1)
                         }
                     }
-                        .buttonStyle(
-                            BorderlessActionStyle(
-                                tone: isStackWorkload
-                                    ? .destructive
-                                    : .secondary
-                            )
+                    .buttonStyle(
+                        BorderlessActionStyle(
+                            tone: isStackWorkload
+                                ? .destructive
+                                : .secondary
                         )
-                        .disabled(
-                            stopState != .idle
-                                || hasPendingQuitConfirmation
-                        )
-                        .accessibilityLabel(
-                            isWorking
-                                ? "Stopping \(group.displayName)"
-                                : buttonTitle
-                        )
+                    )
+                    .disabled(
+                        stopState != .idle
+                            || hasPendingQuitConfirmation
+                    )
+                    .accessibilityLabel(
+                        isWorking
+                            ? "Stopping \(group.displayName)"
+                            : buttonTitle
+                    )
                     Button(
                         isMuted ? "Unmute alerts" : "Mute alerts",
                         action: onToggleMute
                     )
-                        .buttonStyle(InlineActionStyle())
+                    .buttonStyle(InlineActionStyle())
                 }
             }
         case let .protected(reason):
@@ -272,9 +272,10 @@ struct ProcessActivityRow: View {
     }
 
     private var isStackWorkload: Bool {
-        let root = group.processes.first {
-            $0.identity.pid == group.id.rootPID
-        } ?? group.processes.first
+        let root =
+            group.processes.first {
+                $0.identity.pid == group.id.rootPID
+            } ?? group.processes.first
         return root?.executablePath.contains(".app/") != true
     }
 

@@ -169,13 +169,11 @@ private struct CorePillarsView: View {
             )
             let width = max(
                 0.5,
-                (
-                    size.width
-                        - gap * CGFloat(max(0, count - 1))
-                ) / CGFloat(count)
+                (size.width
+                    - gap * CGFloat(max(0, count - 1))) / CGFloat(count)
             )
 
-            for index in 0 ..< count {
+            for index in 0..<count {
                 let height = size.height * fill(index)
                 guard height > 0 else { continue }
                 let rect = CGRect(

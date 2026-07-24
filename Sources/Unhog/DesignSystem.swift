@@ -93,7 +93,7 @@ enum UnhogTheme {
         ram,
         cpu,
         energy,
-        selection
+        selection,
     ]
 
     static let motionEnter = Animation.timingCurve(

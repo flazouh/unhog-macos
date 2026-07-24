@@ -353,9 +353,10 @@ struct StorageView: View {
 
     private var scanningTitle: String {
         guard let activeID = store.scanProgress?.activeLocationID,
-              let location = StorageLocation.commonLocations().first(
-                  where: { $0.id == activeID }
-              ) else {
+            let location = StorageLocation.commonLocations().first(
+                where: { $0.id == activeID }
+            )
+        else {
             return "Finding storage…"
         }
         return "Scanning \(location.name)"

@@ -168,8 +168,11 @@ struct ProcessBranchBarView: View {
     }
 
     private var remainderShare: Double {
-        max(0, 1 - branches.reduce(0) {
-            $0 + share(of: $1)
-        })
+        max(
+            0,
+            1
+                - branches.reduce(0) {
+                    $0 + share(of: $1)
+                })
     }
 }

@@ -53,14 +53,17 @@ private enum ProviderBrandAssets {
         // SwiftPM flattens processed resource folders in packaged bundles.
         // Keep the subdirectory lookup for development builds and fall back to
         // the flattened path used by the signed app.
-        guard let url = bundle.url(
-            forResource: name,
-            withExtension: "svg",
-            subdirectory: "Agents"
-        ) ?? bundle.url(
-            forResource: name,
-            withExtension: "svg"
-        ) else {
+        guard
+            let url = bundle.url(
+                forResource: name,
+                withExtension: "svg",
+                subdirectory: "Agents"
+            )
+                ?? bundle.url(
+                    forResource: name,
+                    withExtension: "svg"
+                )
+        else {
             return nil
         }
         return NSImage(contentsOf: url)
@@ -108,29 +111,31 @@ private enum ClaudeWorkingSparkFrames {
 
     static let images: [NSImage] = {
         guard let bundle = UnhogResourceBundle.bundle,
-              let url = bundle.url(
+            let url = bundle.url(
                 forResource: "claude-working-spark",
                 withExtension: "base64",
                 subdirectory: "Agents"
-              ) ?? bundle.url(
-                forResource: "claude-working-spark",
-                withExtension: "base64"
-              ),
-              let encoded = try? String(
+            )
+                ?? bundle.url(
+                    forResource: "claude-working-spark",
+                    withExtension: "base64"
+                ),
+            let encoded = try? String(
                 contentsOf: url,
                 encoding: .utf8
-              ),
-              let data = Data(
+            ),
+            let data = Data(
                 base64Encoded: encoded.trimmingCharacters(
                     in: .whitespacesAndNewlines
                 )
-              ),
-              let sprite = NSImage(data: data),
-              let image = sprite.cgImage(
+            ),
+            let sprite = NSImage(data: data),
+            let image = sprite.cgImage(
                 forProposedRect: nil,
                 context: nil,
                 hints: nil
-              ) else {
+            )
+        else {
             return []
         }
 
@@ -138,7 +143,7 @@ private enum ClaudeWorkingSparkFrames {
         let frameHeight = image.height / frameCount
         guard frameHeight > 0 else { return [] }
 
-        return (0 ..< frameCount).compactMap { index in
+        return (0..<frameCount).compactMap { index in
             let rect = CGRect(
                 x: 0,
                 y: index * frameHeight,
@@ -162,14 +167,13 @@ private struct FallbackClaudeSparkFrame: View {
 
     var body: some View {
         ZStack {
-            ForEach(0 ..< 12, id: \.self) { index in
+            ForEach(0..<12, id: \.self) { index in
                 let angle = Double(index) * 30
-                let wave = (
-                    sin(
+                let wave =
+                    (sin(
                         phase * .pi * 6
                             + Double(index) * 1.17
-                    ) + 1
-                ) / 2
+                    ) + 1) / 2
                 let length = size * (0.18 + wave * 0.18)
 
                 Capsule()

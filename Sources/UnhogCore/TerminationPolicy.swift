@@ -99,8 +99,9 @@ public struct TerminationPolicy: Sendable {
             var current = process
             var visited = Set<Int32>()
             while current.identity != branch.root.identity,
-                  visited.insert(current.identity.pid).inserted,
-                  let parent = byPID[current.parentPID] {
+                visited.insert(current.identity.pid).inserted,
+                let parent = byPID[current.parentPID]
+            {
                 depth += 1
                 current = parent
             }
@@ -116,13 +117,14 @@ enum ProcessProtection {
         "launchd",
         "loginwindow",
         "windowserver",
-        "systemuiserver"
+        "systemuiserver",
     ]
 
     static func reason(pid: Int32, name: String, path: String) -> String? {
         if pid <= 1
             || protectedNames.contains(name.lowercased())
-            || isProtectedSystemPath(path) {
+            || isProtectedSystemPath(path)
+        {
             return "macOS system process"
         }
         return nil

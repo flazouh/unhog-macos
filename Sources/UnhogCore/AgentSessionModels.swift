@@ -53,7 +53,8 @@ public enum AgentSessionOrganizer {
     ) -> [AgentProjectGroup] {
         Dictionary(grouping: sessions) { session in
             guard let projectName = session.projectName,
-                  !projectName.isEmpty else {
+                !projectName.isEmpty
+            else {
                 return "Other"
             }
             return projectName
@@ -67,9 +68,11 @@ public enum AgentSessionOrganizer {
             )
         }
         .sorted { left, right in
-            let leftUpdate = left.sessions.first?.updatedAt
+            let leftUpdate =
+                left.sessions.first?.updatedAt
                 ?? .distantPast
-            let rightUpdate = right.sessions.first?.updatedAt
+            let rightUpdate =
+                right.sessions.first?.updatedAt
                 ?? .distantPast
             if leftUpdate == rightUpdate {
                 return left.name.localizedCaseInsensitiveCompare(
@@ -157,10 +160,11 @@ public enum AgentCommandBuilder {
         prompt: String,
         model: String?
     ) -> AgentCommand {
-        let rawID = sessionID.split(
-            separator: ":",
-            maxSplits: 1
-        ).last.map(String.init) ?? sessionID
+        let rawID =
+            sessionID.split(
+                separator: ":",
+                maxSplits: 1
+            ).last.map(String.init) ?? sessionID
 
         switch provider {
         case .codex:

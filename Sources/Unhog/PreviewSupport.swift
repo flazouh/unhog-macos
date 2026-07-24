@@ -8,9 +8,11 @@ enum PreviewSupport {
     private static var window: NSWindow?
 
     static func applyFixtureIfRequested(to store: AppStore) {
-        guard let state = ProcessInfo.processInfo.environment[
-            "UNHOG_UI_PREVIEW_STATE"
-        ] else {
+        guard
+            let state = ProcessInfo.processInfo.environment[
+                "UNHOG_UI_PREVIEW_STATE"
+            ]
+        else {
             return
         }
 
@@ -178,7 +180,7 @@ enum PreviewSupport {
                 workingDirectory: workingDirectory,
                 cpuPercent: 73,
                 memoryBytes: 3_140_000_000
-            )
+            ),
         ]
         return ProcessGroup(
             id: ProcessGroupID(

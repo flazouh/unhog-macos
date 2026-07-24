@@ -22,7 +22,8 @@ public struct DrainSignature: Hashable, Sendable {
         self.cpuShare = min(1, cores / Double(coreCount))
         self.logicalCoreCount = coreCount
         self.memoryBytes = group.memoryBytes
-        self.memoryShare = installedMemoryBytes > 0
+        self.memoryShare =
+            installedMemoryBytes > 0
             ? min(
                 1,
                 Double(group.memoryBytes)
@@ -34,4 +35,3 @@ public struct DrainSignature: Hashable, Sendable {
         )
     }
 }
-

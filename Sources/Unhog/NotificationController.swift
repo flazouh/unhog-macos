@@ -11,12 +11,14 @@ actor NotificationController {
             return false
         }
         if settings.authorizationStatus == .authorized
-            || settings.authorizationStatus == .provisional {
+            || settings.authorizationStatus == .provisional
+        {
             return true
         }
-        return (try? await center.requestAuthorization(
-            options: [.alert, .sound]
-        )) ?? false
+        return
+            (try? await center.requestAuthorization(
+                options: [.alert, .sound]
+            )) ?? false
     }
 
     func permissionIsDenied() async -> Bool {
@@ -48,7 +50,8 @@ actor NotificationController {
         policy: NotificationPolicy
     ) async {
         let content = UNMutableNotificationContent()
-        content.title = policy.showsWorkloadNames
+        content.title =
+            policy.showsWorkloadNames
             ? "\(receipt.displayName) recovered"
             : "Resource use recovered"
         let memory = ByteCountFormatter.string(
@@ -71,7 +74,8 @@ actor NotificationController {
         policy: NotificationPolicy
     ) async {
         let content = UNMutableNotificationContent()
-        content.title = policy.showsWorkloadNames
+        content.title =
+            policy.showsWorkloadNames
             ? "\(receipt.displayName) started again"
             : "A stopped workload started again"
         content.body = "Unhog will not stop it again without your approval."
@@ -89,7 +93,8 @@ actor NotificationController {
         for incident: ResourceIncident,
         showsWorkloadNames: Bool
     ) -> String {
-        let name = showsWorkloadNames
+        let name =
+            showsWorkloadNames
             ? incident.group.displayName
             : "A workload"
         return switch incident.signal {

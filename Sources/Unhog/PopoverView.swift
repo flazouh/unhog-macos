@@ -85,7 +85,8 @@ struct PopoverView: View {
             activity
 
             if store.recoveryAssessment == nil,
-               let message = store.message {
+                let message = store.message
+            {
                 messageRow(message)
             }
         }

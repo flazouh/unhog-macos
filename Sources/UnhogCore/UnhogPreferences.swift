@@ -43,7 +43,7 @@ public struct MutedWorkload: Codable, Equatable, Identifiable, Sendable {
         let fingerprint = WorkloadFingerprint(group: group)
         self.id = [
             fingerprint.executableName,
-            fingerprint.projectPath ?? ""
+            fingerprint.projectPath ?? "",
         ].joined(separator: "|")
         self.displayName = group.contextLabel ?? group.displayName
     }
@@ -262,15 +262,16 @@ public struct PreferencePolicies: Equatable, Sendable {
         for preferences: MonitoringPreferences,
         installedMemoryBytes: UInt64
     ) -> ResourceThresholds {
-        let values: (
-            elevatedCPU: Double,
-            highCPU: Double,
-            elevatedMemoryShare: Double,
-            highMemoryShare: Double,
-            developerElevated: UInt64,
-            developerHigh: UInt64,
-            duration: TimeInterval
-        )
+        let values:
+            (
+                elevatedCPU: Double,
+                highCPU: Double,
+                elevatedMemoryShare: Double,
+                highMemoryShare: Double,
+                developerElevated: UInt64,
+                developerHigh: UInt64,
+                duration: TimeInterval
+            )
 
         switch preferences.sensitivity {
         case .quiet:
@@ -349,10 +350,11 @@ public final class UserDefaultsPreferencesRepository {
 
     public func load() -> UnhogPreferences {
         if let data = defaults.data(forKey: storageKey),
-           let preferences = try? JSONDecoder().decode(
-               UnhogPreferences.self,
-               from: data
-           ) {
+            let preferences = try? JSONDecoder().decode(
+                UnhogPreferences.self,
+                from: data
+            )
+        {
             return preferences
         }
 

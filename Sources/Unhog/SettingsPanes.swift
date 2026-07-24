@@ -159,7 +159,8 @@ struct NotificationSettingsPane: View {
             .disabled(store.notificationsDenied)
 
             if store.notificationsDenied
-                && store.preferences.notifications.isEnabled {
+                && store.preferences.notifications.isEnabled
+            {
                 notificationPermissionWarning
             }
 
@@ -321,7 +322,7 @@ struct AdvancedSettingsPane: View {
                     store,
                     \.monitoring.recoveryVerificationDuration
                 ),
-                in: 2 ... 10,
+                in: 2...10,
                 step: 1
             ) {
                 SettingValue(
@@ -339,7 +340,7 @@ struct AdvancedSettingsPane: View {
                     store,
                     \.monitoring.customCPUThresholdCores
                 ),
-                in: 0.5 ... 32,
+                in: 0.5...32,
                 step: 0.5
             ) {
                 SettingValue(
@@ -355,7 +356,7 @@ struct AdvancedSettingsPane: View {
                     store,
                     \.monitoring.customMemoryShare
                 ),
-                in: 0.05 ... 0.8,
+                in: 0.05...0.8,
                 step: 0.05
             ) {
                 SettingValue(
@@ -368,7 +369,7 @@ struct AdvancedSettingsPane: View {
                     store,
                     \.monitoring.customSustainedDuration
                 ),
-                in: 5 ... 120,
+                in: 5...120,
                 step: 5
             ) {
                 SettingValue(

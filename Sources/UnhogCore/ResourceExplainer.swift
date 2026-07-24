@@ -27,12 +27,15 @@ public struct ResourceExplainer: Sendable {
         _ group: ProcessGroup,
         includesProjectContext: Bool = true
     ) -> ResourceExplanation {
-        let contextLabel = includesProjectContext
+        let contextLabel =
+            includesProjectContext
             ? group.contextLabel
             : nil
-        guard let topWorker = group.processes.max(by: {
-            $0.memoryBytes < $1.memoryBytes
-        }) else {
+        guard
+            let topWorker = group.processes.max(by: {
+                $0.memoryBytes < $1.memoryBytes
+            })
+        else {
             return ResourceExplanation(
                 workloadTitle: contextLabel.map { "\($0) stack" }
                     ?? group.displayName,
@@ -47,7 +50,8 @@ public struct ResourceExplainer: Sendable {
                 confidence: .medium
             )
         }
-        let memoryShare = group.memoryBytes > 0
+        let memoryShare =
+            group.memoryBytes > 0
             ? Double(topWorker.memoryBytes) / Double(group.memoryBytes)
             : 0
         var chain = processChain(
@@ -89,7 +93,8 @@ public struct ResourceExplainer: Sendable {
         var visited = Set<Int32>()
 
         while let node = current,
-              visited.insert(node.identity.pid).inserted {
+            visited.insert(node.identity.pid).inserted
+        {
             reversedNames.append(node.name)
             guard node.identity.pid != group.id.rootPID else {
                 break
@@ -97,7 +102,8 @@ public struct ResourceExplainer: Sendable {
             current = byPID[node.parentPID]
         }
 
-        return reversedNames
+        return
+            reversedNames
             .reversed()
             .reduce(into: [String]()) { names, name in
                 if names.last != name {

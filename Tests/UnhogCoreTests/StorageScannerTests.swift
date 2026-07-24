@@ -43,7 +43,7 @@ struct StorageScannerTests {
         let results = try StorageScanner().scan(
             [
                 StorageLocation(id: "small", name: "Small", url: small),
-                StorageLocation(id: "large", name: "Large", url: large)
+                StorageLocation(id: "large", name: "Large", url: large),
             ]
         )
 
@@ -78,7 +78,7 @@ struct StorageScannerTests {
         let results = try StorageScanner().scan(
             [
                 StorageLocation(id: "first", name: "First", url: first),
-                StorageLocation(id: "second", name: "Second", url: second)
+                StorageLocation(id: "second", name: "Second", url: second),
             ],
             onProgress: { snapshots.append($0) }
         )

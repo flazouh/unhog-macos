@@ -20,8 +20,7 @@ final class StorageStore: ObservableObject {
     private var overviewTask: Task<Void, Never>?
     private var scanTask: Task<Void, Never>?
     private var scanWorker: Task<StorageFolderLoadOutcome, Never>?
-    private var scanContinuation:
-        AsyncStream<StorageScanProgress>.Continuation?
+    private var scanContinuation: AsyncStream<StorageScanProgress>.Continuation?
 
     init(scanner: StorageScanner = StorageScanner()) {
         self.scanner = scanner
@@ -142,7 +141,7 @@ final class StorageStore: ObservableObject {
                 bytes: 9_600_000_000,
                 fileCount: 3_876,
                 home: home
-            )
+            ),
         ]
         scanProgress = StorageScanProgress(
             folders: folders,

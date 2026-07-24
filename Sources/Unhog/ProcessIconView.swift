@@ -98,10 +98,12 @@ private final class ToolIconImageCache {
         if let cached = images.object(forKey: key) {
             return cached
         }
-        guard let url = UnhogResourceBundle.bundle?.url(
-            forResource: name,
-            withExtension: "svg"
-        ), let image = NSImage(contentsOf: url) else {
+        guard
+            let url = UnhogResourceBundle.bundle?.url(
+                forResource: name,
+                withExtension: "svg"
+            ), let image = NSImage(contentsOf: url)
+        else {
             return nil
         }
         images.setObject(image, forKey: key)

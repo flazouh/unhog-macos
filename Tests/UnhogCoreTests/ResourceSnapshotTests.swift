@@ -9,7 +9,7 @@ struct ResourceSnapshotTests {
             installedBytes: 1_000,
             groups: [
                 group(pid: 10, name: "bun", cpu: 18, memory: 250),
-                group(pid: 20, name: "Cursor", cpu: 46, memory: 100)
+                group(pid: 20, name: "Cursor", cpu: 46, memory: 100),
             ]
         )
 
@@ -33,7 +33,7 @@ struct ResourceSnapshotTests {
                 group(pid: 10, name: "A", cpu: 1, memory: 300),
                 group(pid: 20, name: "B", cpu: 1, memory: 200),
                 group(pid: 30, name: "C", cpu: 1, memory: 100),
-                focused
+                focused,
             ],
             maximumVisibleSegments: 3,
             prioritizedGroupID: focused.id
@@ -56,7 +56,7 @@ struct ResourceSnapshotTests {
             installedBytes: 100,
             groups: [
                 group(pid: 10, name: "A", cpu: 1, memory: 80),
-                group(pid: 20, name: "B", cpu: 1, memory: 50)
+                group(pid: 20, name: "B", cpu: 1, memory: 50),
             ]
         )
 

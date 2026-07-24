@@ -54,8 +54,9 @@ final class SystemProcessSampler {
 
             let cpuPercent: Double
             if let previous = previousCPUTime[identity],
-               elapsed > 0,
-               cpuNanoseconds >= previous {
+                elapsed > 0,
+                cpuNanoseconds >= previous
+            {
                 cpuPercent = Double(cpuNanoseconds - previous) / elapsed * 100
             } else {
                 cpuPercent = 0
@@ -200,17 +201,19 @@ final class SystemProcessSampler {
     ) -> Set<ProcessTag> {
         let basic = "\(name) \(path)".lowercased()
         let basename = (path as NSString).lastPathComponent.lowercased()
-        let shouldInspectArguments = [
-            "node",
-            "bun",
-            "nx",
-            "tsserver",
-            "typescript-language-server"
-        ].contains(basename) || basic.contains("tsserver")
+        let shouldInspectArguments =
+            [
+                "node",
+                "bun",
+                "nx",
+                "tsserver",
+                "typescript-language-server",
+            ].contains(basename) || basic.contains("tsserver")
 
         let arguments: [String]
         if shouldInspectArguments,
-           let parsedArguments = processArguments(for: pid) {
+            let parsedArguments = processArguments(for: pid)
+        {
             arguments = parsedArguments
         } else {
             arguments = []
@@ -227,14 +230,16 @@ final class SystemProcessSampler {
         var maximumLength: Int32 = 0
         var maximumLengthSize = MemoryLayout<Int32>.size
         var maximumLengthQuery = [CTL_KERN, KERN_ARGMAX]
-        guard sysctl(
-            &maximumLengthQuery,
-            2,
-            &maximumLength,
-            &maximumLengthSize,
-            nil,
-            0
-        ) == 0, maximumLength > 0 else {
+        guard
+            sysctl(
+                &maximumLengthQuery,
+                2,
+                &maximumLength,
+                &maximumLengthSize,
+                nil,
+                0
+            ) == 0, maximumLength > 0
+        else {
             return nil
         }
 
@@ -242,7 +247,8 @@ final class SystemProcessSampler {
         var bufferSize = buffer.count
         var query = [CTL_KERN, KERN_PROCARGS2, pid]
         guard sysctl(&query, 3, &buffer, &bufferSize, nil, 0) == 0,
-              bufferSize > MemoryLayout<Int32>.size else {
+            bufferSize > MemoryLayout<Int32>.size
+        else {
             return nil
         }
 

@@ -117,11 +117,13 @@ public struct ProcessGroup: Identifiable, Hashable, Sendable {
     }
 
     public var contextLabel: String? {
-        let root = processes.first { $0.identity.pid == id.rootPID }
+        let root =
+            processes.first { $0.identity.pid == id.rootPID }
             ?? processes.first
         guard let path = root?.workingDirectory,
-              path != "/",
-              !path.isEmpty else {
+            path != "/",
+            !path.isEmpty
+        else {
             return nil
         }
 
@@ -137,8 +139,9 @@ public struct ProcessGroup: Identifiable, Hashable, Sendable {
         }
 
         guard let folder = components.last,
-              folder != "Users",
-              folder != "Documents" else {
+            folder != "Users",
+            folder != "Documents"
+        else {
             return nil
         }
         return Self.projectDisplayName(folder)

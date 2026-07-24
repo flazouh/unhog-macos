@@ -22,10 +22,12 @@ struct UnhogMenuBarMark: View {
 @MainActor
 private enum UnhogMenuBarMarkImage {
     static let image: NSImage? = {
-        guard let url = UnhogResourceBundle.bundle?.url(
-            forResource: "menubar-mono",
-            withExtension: "svg"
-        ), let image = NSImage(contentsOf: url) else {
+        guard
+            let url = UnhogResourceBundle.bundle?.url(
+                forResource: "menubar-mono",
+                withExtension: "svg"
+            ), let image = NSImage(contentsOf: url)
+        else {
             return nil
         }
         image.isTemplate = true

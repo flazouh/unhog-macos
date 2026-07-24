@@ -132,18 +132,20 @@ public struct ResourcePressureDetector: Sendable {
                 (.highCPU, group.cpuPercent >= thresholds.highCPUPercent),
                 (
                     .elevatedMemory,
-                    group.memoryBytes >= memoryThreshold(
-                        for: group,
-                        severity: .elevated
-                    )
+                    group.memoryBytes
+                        >= memoryThreshold(
+                            for: group,
+                            severity: .elevated
+                        )
                 ),
                 (
                     .highMemory,
-                    group.memoryBytes >= memoryThreshold(
-                        for: group,
-                        severity: .high
-                    )
-                )
+                    group.memoryBytes
+                        >= memoryThreshold(
+                            for: group,
+                            severity: .high
+                        )
+                ),
             ]
 
             var sustained: [(metric: Metric, beganAt: Date, duration: TimeInterval)] = []
@@ -163,12 +165,14 @@ public struct ResourcePressureDetector: Sendable {
                 }
             }
 
-            guard let strongest = sustained.max(by: {
-                if $0.metric.severity == $1.metric.severity {
-                    return metricPriority($0.metric) < metricPriority($1.metric)
-                }
-                return $0.metric.severity < $1.metric.severity
-            }) else {
+            guard
+                let strongest = sustained.max(by: {
+                    if $0.metric.severity == $1.metric.severity {
+                        return metricPriority($0.metric) < metricPriority($1.metric)
+                    }
+                    return $0.metric.severity < $1.metric.severity
+                })
+            else {
                 continue
             }
 
@@ -230,12 +234,11 @@ public struct ResourcePressureDetector: Sendable {
         case .playwright, .typeScript, .nx:
             return true
         case .application:
-            let root = group.processes.first {
-                $0.identity.pid == group.id.rootPID
-            } ?? group.processes.first
-            let executable = (
-                root?.executablePath as NSString?
-            )?.lastPathComponent.lowercased()
+            let root =
+                group.processes.first {
+                    $0.identity.pid == group.id.rootPID
+                } ?? group.processes.first
+            let executable = (root?.executablePath as NSString?)?.lastPathComponent.lowercased()
             return [
                 "bun",
                 "deno",
@@ -243,7 +246,7 @@ public struct ResourcePressureDetector: Sendable {
                 "node",
                 "nx",
                 "tsserver",
-                "typescript-language-server"
+                "typescript-language-server",
             ].contains(executable)
         }
     }

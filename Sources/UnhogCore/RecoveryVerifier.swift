@@ -6,16 +6,18 @@ public struct WorkloadFingerprint: Hashable, Sendable {
     public let projectPath: String?
 
     public init(group: ProcessGroup) {
-        let root = group.processes.first {
-            $0.identity.pid == group.id.rootPID
-        } ?? group.processes.first
+        let root =
+            group.processes.first {
+                $0.identity.pid == group.id.rootPID
+            } ?? group.processes.first
         let executablePath = root?.executablePath ?? ""
 
         self.kind = group.kind
         self.executableName = (executablePath as NSString)
             .lastPathComponent
             .lowercased()
-        self.projectPath = executablePath.contains(".app/")
+        self.projectPath =
+            executablePath.contains(".app/")
             ? nil
             : root?.workingDirectory
     }
@@ -164,7 +166,8 @@ public struct BranchRecoveryVerifier: Sendable {
             .map(\.identity)
             .filter(currentProcessIdentities.contains)
         let fingerprint = ProcessBranchFingerprint(branch: original)
-        let matchingBranch = currentGroups
+        let matchingBranch =
+            currentGroups
             .first { $0.id == original.id.workloadID }
             .flatMap { workload in
                 resolver.visibleBranches(in: workload)

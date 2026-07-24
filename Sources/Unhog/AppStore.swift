@@ -22,8 +22,7 @@ final class AppStore: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var pendingForceName: String?
     @Published private(set) var pendingQuitGroup: ProcessGroup?
-    @Published private(set) var pendingForceQuitConfirmationID:
-        ProcessGroupID?
+    @Published private(set) var pendingForceQuitConfirmationID: ProcessGroupID?
     @Published private(set) var notificationsDenied = false
     @Published private(set) var monitoringPausedUntil: Date?
     @Published var selectedGroupID: ProcessGroupID?
@@ -243,7 +242,8 @@ final class AppStore: ObservableObject {
 
     func toggleDetails(for id: ProcessGroupID) {
         if selectedGroupID == id,
-           pendingQuitGroup?.id == id {
+            pendingQuitGroup?.id == id
+        {
             cancelPendingQuit()
         }
         selectedGroupID = selectedGroupID == id ? nil : id
@@ -259,7 +259,8 @@ final class AppStore: ObservableObject {
             return
         }
         guard stopState == .idle,
-              let group = group(with: id) else {
+            let group = group(with: id)
+        else {
             return
         }
 
@@ -295,7 +296,8 @@ final class AppStore: ObservableObject {
         branch: ProcessBranch? = nil
     ) {
 
-        let plan = branch.map { terminationPolicy.plan(for: $0) }
+        let plan =
+            branch.map { terminationPolicy.plan(for: $0) }
             ?? terminationPolicy.plan(for: group)
         guard plan.capability == .allowed else {
             if case let .protected(reason) = plan.capability {
@@ -309,11 +311,13 @@ final class AppStore: ObservableObject {
         resolvingGroup = group
         resolutionOriginalGroup = group
         resolutionBranch = branch
-        resolutionIncident = branch.flatMap { selected in
-            incidents.first { $0.id == selected.id.workloadID }
-        } ?? incidents.first { $0.id == group.id }
+        resolutionIncident =
+            branch.flatMap { selected in
+                incidents.first { $0.id == selected.id.workloadID }
+            } ?? incidents.first { $0.id == group.id }
         if let branch,
-           let workload = self.group(with: branch.id.workloadID) {
+            let workload = self.group(with: branch.id.workloadID)
+        {
             resolutionPreexistingBranchIDs = Set(
                 branchResolver.visibleBranches(in: workload)
                     .filter {
@@ -347,10 +351,11 @@ final class AppStore: ObservableObject {
             let signalResult: TerminationResult?
 
             if branch == nil,
-               case .application = group.kind,
-               let application = NSRunningApplication(
-                   processIdentifier: group.id.rootPID
-               ) {
+                case .application = group.kind,
+                let application = NSRunningApplication(
+                    processIdentifier: group.id.rootPID
+                )
+            {
                 _ = application.terminate()
                 signalResult = nil
             } else {
@@ -377,7 +382,8 @@ final class AppStore: ObservableObject {
                 ) {
                     let refreshedPlan = terminationPolicy.plan(for: refreshedGroup)
                     if refreshedPlan.capability == .allowed,
-                       !refreshedPlan.targets.isEmpty {
+                        !refreshedPlan.targets.isEmpty
+                    {
                         pendingForcePlan = refreshedPlan
                         pendingForceGroup = refreshedGroup
                         pendingForceName = group.displayName
@@ -394,7 +400,8 @@ final class AppStore: ObservableObject {
             case .recovered:
                 stopState = .idle
                 if let signalResult, !signalResult.failures.isEmpty {
-                    message = "Quit completed with \(signalResult.failures.count) warning\(signalResult.failures.count == 1 ? "" : "s")."
+                    message =
+                        "Quit completed with \(signalResult.failures.count) warning\(signalResult.failures.count == 1 ? "" : "s")."
                 }
 
             case .restarted:
@@ -424,12 +431,13 @@ final class AppStore: ObservableObject {
             return
         }
         guard stopState == .forceAvailable(id),
-              let oldPlan = pendingForcePlan,
-              let oldGroup = pendingForceGroup,
-              let refreshedGroup = refreshedGroup(
-                  from: oldGroup,
-                  keeping: oldPlan.targets
-              ) else {
+            let oldPlan = pendingForcePlan,
+            let oldGroup = pendingForceGroup,
+            let refreshedGroup = refreshedGroup(
+                from: oldGroup,
+                keeping: oldPlan.targets
+            )
+        else {
             cancelPendingForceQuit()
             return
         }
@@ -467,7 +475,8 @@ final class AppStore: ObservableObject {
                 let count = max(remaining.count, result.failures.count)
                 message = "\(count) process\(count == 1 ? "" : "es") could not be stopped."
             } else if !result.failures.isEmpty {
-                message = "\(displayName) stopped with \(result.failures.count) warning\(result.failures.count == 1 ? "" : "s")."
+                message =
+                    "\(displayName) stopped with \(result.failures.count) warning\(result.failures.count == 1 ? "" : "s")."
             }
         }
     }
@@ -528,7 +537,8 @@ final class AppStore: ObservableObject {
         )
 
         if !notificationsWereEnabled
-            && updated.notifications.isEnabled {
+            && updated.notifications.isEnabled
+        {
             Task {
                 notificationsDenied =
                     !(await notifications.requestPermission())
@@ -554,10 +564,12 @@ final class AppStore: ObservableObject {
     }
 
     func openNotificationSettings() {
-        guard let url = URL(
-            string:
-                "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
-        ) else { return }
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+            )
+        else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -575,22 +587,23 @@ final class AppStore: ObservableObject {
     func copyDiagnostics() {
         let policy = currentPolicies.monitoring
         let text = """
-        Unhog diagnostics
-        Sensitivity: \(preferences.monitoring.sensitivity.rawValue)
-        Sampling: \(policy.pressureSamplingInterval)-\(policy.calmSamplingInterval) seconds
-        Visible workloads: \(groups.count)
-        Active incidents: \(incidents.count)
-        Installed memory: \(installedMemoryBytes) bytes
-        """
+            Unhog diagnostics
+            Sensitivity: \(preferences.monitoring.sensitivity.rawValue)
+            Sampling: \(policy.pressureSamplingInterval)-\(policy.calmSamplingInterval) seconds
+            Visible workloads: \(groups.count)
+            Active incidents: \(incidents.count)
+            Installed memory: \(installedMemoryBytes) bytes
+            """
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         message = "Redacted diagnostics copied."
     }
 
     func pauseMonitoring(for duration: TimeInterval?) {
-        monitoringPausedUntil = duration.map {
-            Date().addingTimeInterval($0)
-        } ?? .distantFuture
+        monitoringPausedUntil =
+            duration.map {
+                Date().addingTimeInterval($0)
+            } ?? .distantFuture
         incidents = []
         notifiedIncidentIDs = []
     }
@@ -649,9 +662,11 @@ final class AppStore: ObservableObject {
         let allGroups = grouper.groups(from: userSamples)
         let monitoringPolicy = currentPolicies.monitoring
         let detectedIncidents = detector.evaluate(allGroups)
-        let alertsAllowed = monitoringPolicy.alertScope == .always
+        let alertsAllowed =
+            monitoringPolicy.alertScope == .always
             || PowerSource.isUsingBattery
-        let newIncidents = alertsAllowed
+        let newIncidents =
+            alertsAllowed
             ? detectedIncidents.filter {
                 !monitoringPolicy.mutedWorkloadIDs.contains(
                     MutedWorkload(group: $0.group).id
@@ -672,17 +687,15 @@ final class AppStore: ObservableObject {
         previousGroupMemory = Dictionary(
             uniqueKeysWithValues: allGroups.map { ($0.id, $0.memoryBytes) }
         )
-        pressureIsRising = !newIncidents.isEmpty
-            || (
-                preferences.monitoring.watchesMemory
-                    && memoryIsGrowing
-            )
-            || (
-                preferences.monitoring.watchesCPU
-                    && allGroups.contains { $0.cpuPercent >= 100 }
-            )
+        pressureIsRising =
+            !newIncidents.isEmpty
+            || (preferences.monitoring.watchesMemory
+                && memoryIsGrowing)
+            || (preferences.monitoring.watchesCPU
+                && allGroups.contains { $0.cpuPercent >= 100 })
         let incidentIDs = Set(newIncidents.map(\.id))
-        let visibleGroups = allGroups
+        let visibleGroups =
+            allGroups
             .filter { $0.cpuPercent >= 0.5 || $0.memoryBytes >= 30_000_000 }
         for group in visibleGroups.sorted(by: {
             $0.memoryBytes > $1.memoryBytes
@@ -701,12 +714,14 @@ final class AppStore: ObservableObject {
                     if leftNeedsAttention != rightNeedsAttention {
                         return leftNeedsAttention
                     }
-                    let leftOrder = stableGroupOrder[
-                        WorkloadFingerprint(group: $0)
-                    ] ?? .max
-                    let rightOrder = stableGroupOrder[
-                        WorkloadFingerprint(group: $1)
-                    ] ?? .max
+                    let leftOrder =
+                        stableGroupOrder[
+                            WorkloadFingerprint(group: $0)
+                        ] ?? .max
+                    let rightOrder =
+                        stableGroupOrder[
+                            WorkloadFingerprint(group: $1)
+                        ] ?? .max
                     if leftOrder == rightOrder {
                         return $0.id.rootPID < $1.id.rootPID
                     }
@@ -726,7 +741,8 @@ final class AppStore: ObservableObject {
 
         for incident in newIncidents {
             if notificationPolicy.level == .importantOnly,
-               incident.severity != .high {
+                incident.severity != .high
+            {
                 continue
             }
             guard notifiedIncidentIDs.insert(incident.id).inserted else {
@@ -770,7 +786,8 @@ final class AppStore: ObservableObject {
         keeping identities: [ProcessIdentity]
     ) -> ProcessGroup? {
         let wanted = Set(identities)
-        let processes = latestGroups
+        let processes =
+            latestGroups
             .flatMap(\.processes)
             .filter { wanted.contains($0.identity) }
         guard !processes.isEmpty else { return nil }
@@ -809,8 +826,10 @@ final class AppStore: ObservableObject {
             verificationDuration: verificationDuration
         )
         if case let .restarted(receipt) = assessment,
-           let successorID = receipt.successorGroupID {
-            resolvingGroup = latestGroups
+            let successorID = receipt.successorGroupID
+        {
+            resolvingGroup =
+                latestGroups
                 .flatMap { branchResolver.visibleBranches(in: $0) }
                 .first { $0.asProcessGroup.id == successorID }?
                 .asProcessGroup
@@ -875,13 +894,13 @@ final class AppStore: ObservableObject {
         if notificationPolicy.isEnabled {
             switch assessment {
             case let .recovered(receipt)
-                where notificationPolicy.notifiesOnRecovery:
+            where notificationPolicy.notifiesOnRecovery:
                 await notifications.sendRecovery(
                     receipt,
                     policy: notificationPolicy
                 )
             case let .restarted(receipt)
-                where notificationPolicy.notifiesOnRestart:
+            where notificationPolicy.notifiesOnRestart:
                 await notifications.sendRestart(
                     receipt,
                     policy: notificationPolicy
@@ -895,9 +914,10 @@ final class AppStore: ObservableObject {
         recoveryCollapseTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(8))
             guard !Task.isCancelled,
-                  case let .recovered(currentReceipt) =
+                case let .recovered(currentReceipt) =
                     self?.recoveryAssessment,
-                  currentReceipt == receipt else {
+                currentReceipt == receipt
+            else {
                 return
             }
             self?.dismissRecovery()

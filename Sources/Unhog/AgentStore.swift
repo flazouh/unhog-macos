@@ -129,7 +129,8 @@ final class AgentStore: ObservableObject {
             in: .whitespacesAndNewlines
         )
         guard !cleanPrompt.isEmpty,
-              status(for: session.id) != .sending else {
+            status(for: session.id) != .sending
+        else {
             return
         }
 
@@ -173,7 +174,8 @@ final class AgentStore: ObservableObject {
             if selectedSessionID == nil
                 || !rootSessions.contains(where: {
                     $0.id == selectedSessionID
-                }) {
+                })
+            {
                 selectedSessionID = rootSessions.first?.id
             }
             errorMessage = nil
@@ -200,9 +202,11 @@ private enum AgentCommandExecutor {
         _ command: AgentCommand,
         workingDirectory: String?
     ) -> AgentCommandResult {
-        guard let executable = executableURL(
-            named: command.executableName
-        ) else {
+        guard
+            let executable = executableURL(
+                named: command.executableName
+            )
+        else {
             return .failure(
                 "\(command.executableName) CLI was not found."
             )
@@ -212,7 +216,8 @@ private enum AgentCommandExecutor {
         process.executableURL = executable
         process.arguments = command.arguments
         if let workingDirectory,
-           FileManager.default.fileExists(atPath: workingDirectory) {
+            FileManager.default.fileExists(atPath: workingDirectory)
+        {
             process.currentDirectoryURL = URL(
                 filePath: workingDirectory,
                 directoryHint: .isDirectory
@@ -224,7 +229,8 @@ private enum AgentCommandExecutor {
 
         do {
             try process.run()
-            let data = try errorPipe.fileHandleForReading.readToEnd()
+            let data =
+                try errorPipe.fileHandleForReading.readToEnd()
                 ?? Data()
             process.waitUntilExit()
             if process.terminationStatus == 0 {
@@ -250,20 +256,22 @@ private enum AgentCommandExecutor {
             candidates = [
                 "/opt/homebrew/bin/codex",
                 "/usr/local/bin/codex",
-                "\(home)/.local/bin/codex"
+                "\(home)/.local/bin/codex",
             ]
         case "claude":
             candidates = [
                 "\(home)/.local/bin/claude",
                 "/opt/homebrew/bin/claude",
-                "/usr/local/bin/claude"
+                "/usr/local/bin/claude",
             ]
         default:
             candidates = []
         }
-        guard let path = candidates.first(where: {
-            FileManager.default.isExecutableFile(atPath: $0)
-        }) else {
+        guard
+            let path = candidates.first(where: {
+                FileManager.default.isExecutableFile(atPath: $0)
+            })
+        else {
             return nil
         }
         return URL(filePath: path)
