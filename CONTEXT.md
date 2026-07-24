@@ -1,8 +1,10 @@
-# Unhog Resource Control
+# Unhog Resource Monitor
 
 Unhog explains resource-heavy local workloads and lets the user stop a
 verified scope without pretending process relationships are more certain than
-the observed process tree.
+the observed process tree. It also reports aggregate AI-provider usage:
+subscription windows, reset times, credits, and local token volume. It never
+shows prompt or transcript content and never launches provider commands.
 
 ## Language
 
@@ -28,3 +30,8 @@ _Avoid_: Partial stop, selective kill
 A verified before-and-after account of what remained, disappeared, or appeared
 again after a stop request.
 _Avoid_: Success toast, freed-memory claim
+
+**Provider usage**:
+Read-only subscription limits and aggregate token volume reported for an AI
+provider.
+_Avoid_: Session activity, command center, transcript console

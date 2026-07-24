@@ -7,7 +7,7 @@ import UnhogCore
 final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
     private let store: AppStore
     private let storageStore: StorageStore
-    private let agentStore: AgentStore
+    private let usageStore: UsageStore
     private let dismissalPolicy = MenuBarWidgetDismissalPolicy()
     private let statusItem = NSStatusBar.system.statusItem(
         withLength: NSStatusItem.variableLength
@@ -21,11 +21,11 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
     init(
         store: AppStore,
         storageStore: StorageStore,
-        agentStore: AgentStore
+        usageStore: UsageStore
     ) {
         self.store = store
         self.storageStore = storageStore
-        self.agentStore = agentStore
+        self.usageStore = usageStore
         super.init()
         configureStatusItem()
         configurePopover()
@@ -86,7 +86,7 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             rootView: MenuBarWidgetRoot(
                 store: store,
                 storageStore: storageStore,
-                agentStore: agentStore
+                usageStore: usageStore
             )
         )
     }
@@ -179,13 +179,13 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
 private struct MenuBarWidgetRoot: View {
     @ObservedObject var store: AppStore
     @ObservedObject var storageStore: StorageStore
-    @ObservedObject var agentStore: AgentStore
+    @ObservedObject var usageStore: UsageStore
 
     var body: some View {
         PopoverView(
             store: store,
             storageStore: storageStore,
-            agentStore: agentStore
+            usageStore: usageStore
         )
         .environment(
             \.unhogReduceMotion,

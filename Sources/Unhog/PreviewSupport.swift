@@ -6,7 +6,7 @@ import SwiftUI
 enum PreviewSupport {
     static var store: AppStore?
     static var storageStore: StorageStore?
-    static var agentStore: AgentStore?
+    static var usageStore: UsageStore?
     private static var window: NSWindow?
 
     static func applyFixtureIfRequested(to store: AppStore) {
@@ -124,32 +124,20 @@ enum PreviewSupport {
         guard window == nil,
             let store,
             let storageStore,
-            let agentStore
+            let usageStore
         else { return }
 
-        let state = ProcessInfo.processInfo.environment[
-            "UNHOG_UI_PREVIEW_STATE"
-        ]
-        let controller: NSViewController
-        let contentSize: NSSize
-        if state == "agent-console" {
-            controller = NSHostingController(
-                rootView: AgentConsoleView(store: agentStore)
+        let controller = NSHostingController(
+            rootView: PopoverView(
+                store: store,
+                storageStore: storageStore,
+                usageStore: usageStore
             )
-            contentSize = NSSize(width: 1_040, height: 680)
-        } else {
-            controller = NSHostingController(
-                rootView: PopoverView(
-                    store: store,
-                    storageStore: storageStore,
-                    agentStore: agentStore
-                )
-            )
-            contentSize = NSSize(
-                width: UnhogTheme.popoverWidth,
-                height: UnhogTheme.popoverHeight
-            )
-        }
+        )
+        let contentSize = NSSize(
+            width: UnhogTheme.popoverWidth,
+            height: UnhogTheme.popoverHeight
+        )
         let previewWindow = NSWindow(contentViewController: controller)
         previewWindow.title = "Unhog Preview"
         previewWindow.styleMask = [.titled, .closable, .fullSizeContentView]

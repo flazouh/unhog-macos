@@ -37,7 +37,9 @@ what actually changed.
 
 - **CPU** is measured from real process-time deltas, not a noisy instantaneous read.
 - **Memory** uses physical footprint, with resident memory as a fallback.
-- **Everything stays on your Mac.** No accounts, no telemetry, no network calls.
+- **No Unhog account or telemetry.** Process, storage, and local token history
+  stay on your Mac. The Usage tab contacts Anthropic and OpenAI directly with
+  the CLI logins already on your machine to read subscription limits.
 
 ## Install
 
@@ -70,8 +72,9 @@ shasum -a 256 -c Unhog-<version>.dmg.sha256
   whole family.
 - **Storage overview** — read-only disk capacity plus an on-demand, cancellable
   scan of common folders. It never scans automatically and never deletes.
-- **Local agents view** — recent Codex and Claude sessions with project, model,
-  and a compact context-window map.
+- **Provider usage** — Claude and Codex session/weekly limits, reset times,
+  credits, and measured local token volume for today, seven days, and 30 days.
+  It is read-only and never exposes prompt or transcript content.
 - **Quiet by default** — machine-scaled sustained-load detection means short
   compile spikes and normal large apps don't spam you. Notifications fire only
   after 20 seconds of genuine high load.
@@ -102,9 +105,10 @@ Run the behaviour suite:
 swift test
 ```
 
-The tests cover process-family grouping, separation of unrelated sessions,
+The tests cover process-family grouping, separation of unrelated workloads,
 sustained-vs-short CPU pressure, cooldown behaviour, and the current-user /
-system-path / self-termination safety guarantees.
+system-path / self-termination safety guarantees. Usage tests cover provider
+payload normalization and privacy-preserving local token aggregation.
 
 Before every commit or release, run the full quality gate:
 
@@ -125,7 +129,7 @@ ProcessGrouper           -> understandable process families
 ResourcePressureDetector -> sustained, explainable incidents
 MemoryComposition        -> installed-RAM shares and honest remainder
 StorageScanner           -> volume capacity and ranked folder usage
-AgentSessionScanner      -> local Codex and Claude context snapshots
+UsageScanner             -> provider limits and aggregate local token usage
 ResourceExplainer        -> project, process chain, and top worker
 RecoveryVerifier         -> recovered, restarted, or still running
 TerminationPolicy        -> pure safety decision
@@ -155,3 +159,7 @@ before changing process grouping or termination behaviour, and see
 [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 Unhog is open source under the [MIT License](LICENSE).
+
+The provider-usage implementation was informed by
+[OpenUsage](https://github.com/robinebers/openusage), an MIT-licensed native
+macOS usage tracker. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

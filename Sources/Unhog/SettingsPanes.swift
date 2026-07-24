@@ -3,8 +3,16 @@ import SwiftUI
 
 struct GeneralSettingsPane: View {
     @ObservedObject var store: AppStore
+    @ObservedObject var updateController: UpdateController
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            menuBar
+            updates
+        }
+    }
+
+    private var menuBar: some View {
         SettingsGroup("Menu bar") {
             SettingsPicker(
                 "Display",
@@ -44,6 +52,72 @@ struct GeneralSettingsPane: View {
             SettingDescription(
                 "The macOS Reduce Motion setting always takes priority."
             )
+        }
+    }
+
+    private var updates: some View {
+        SettingsGroup("Updates") {
+            SettingValue(
+                "Current version",
+                updateController.currentVersionLabel
+            )
+            Toggle(
+                "Check for updates automatically",
+                isOn: preferenceBinding(
+                    store,
+                    \.general.automaticallyCheckForUpdates
+                )
+            )
+            HStack {
+                Button("Check for Updates…") {
+                    Task {
+                        await updateController.checkForUpdates(
+                            showUpToDateAlert: false,
+                            showUpdateAlert: false
+                        )
+                    }
+                }
+                if updateController.state == .checking {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+            updateStatus
+        }
+    }
+
+    @ViewBuilder
+    private var updateStatus: some View {
+        switch updateController.state {
+        case .idle, .checking:
+            EmptyView()
+        case .upToDate:
+            SettingDescription("You're on the latest release.")
+        case let .updateAvailable(update):
+            SettingDescription(
+                "Unhog \(update.version.displayString) is available."
+            )
+            HStack {
+                Button("Download update") {
+                    Task {
+                        await updateController.downloadUpdate()
+                    }
+                }
+                Button("View release notes") {
+                    updateController.openReleasePage()
+                }
+            }
+        case .downloading:
+            SettingDescription("Downloading the latest installer…")
+        case let .readyToInstall(url):
+            SettingDescription(
+                "Installer saved to \(url.lastPathComponent)."
+            )
+            Button("Open installer") {
+                updateController.openDownloadedUpdate()
+            }
+        case let .failed(message):
+            SettingDescription(message)
         }
     }
 }

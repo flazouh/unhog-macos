@@ -32,6 +32,7 @@ struct SettingsView: View {
     }
 
     @ObservedObject var store: AppStore
+    @ObservedObject var updateController: UpdateController
     @State private var selection: Section = .general
 
     var body: some View {
@@ -101,7 +102,10 @@ struct SettingsView: View {
     private var content: some View {
         switch selection {
         case .general:
-            GeneralSettingsPane(store: store)
+            GeneralSettingsPane(
+                store: store,
+                updateController: updateController
+            )
         case .monitoring:
             MonitoringSettingsPane(
                 store: store,

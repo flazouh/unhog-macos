@@ -58,15 +58,18 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
     public var startsAtLogin: Bool
     public var menuBarDisplay: MenuBarDisplayMode
     public var motion: MotionPreference
+    public var automaticallyCheckForUpdates: Bool
 
     public init(
         startsAtLogin: Bool = false,
         menuBarDisplay: MenuBarDisplayMode = .adaptive,
-        motion: MotionPreference = .followSystem
+        motion: MotionPreference = .followSystem,
+        automaticallyCheckForUpdates: Bool = true
     ) {
         self.startsAtLogin = startsAtLogin
         self.menuBarDisplay = menuBarDisplay
         self.motion = motion
+        self.automaticallyCheckForUpdates = automaticallyCheckForUpdates
     }
 }
 

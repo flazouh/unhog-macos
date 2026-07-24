@@ -2,7 +2,7 @@ import SwiftUI
 
 enum PopoverSection: String, CaseIterable, Identifiable {
     case activity
-    case agents
+    case usage
     case storage
 
     var id: Self { self }
@@ -11,8 +11,8 @@ enum PopoverSection: String, CaseIterable, Identifiable {
         switch self {
         case .activity:
             "Activity"
-        case .agents:
-            "Agents"
+        case .usage:
+            "Usage"
         case .storage:
             "Storage"
         }
@@ -22,8 +22,8 @@ enum PopoverSection: String, CaseIterable, Identifiable {
         switch self {
         case .activity:
             "waveform.path.ecg"
-        case .agents:
-            "sparkles"
+        case .usage:
+            "chart.bar.xaxis"
         case .storage:
             "internaldrive"
         }

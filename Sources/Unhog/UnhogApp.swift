@@ -7,7 +7,10 @@ struct UnhogApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsRoot(store: appDelegate.store)
+            SettingsRoot(
+                store: appDelegate.store,
+                updateController: appDelegate.updateController
+            )
         }
     }
 }
@@ -15,13 +18,17 @@ struct UnhogApp: App {
 @MainActor
 private struct SettingsRoot: View {
     @ObservedObject var store: AppStore
+    @ObservedObject var updateController: UpdateController
 
     var body: some View {
-        SettingsView(store: store)
-            .environment(
-                \.unhogReduceMotion,
-                store.shouldReduceMotion
-            )
+        SettingsView(
+            store: store,
+            updateController: updateController
+        )
+        .environment(
+            \.unhogReduceMotion,
+            store.shouldReduceMotion
+        )
     }
 }
 
@@ -29,7 +36,8 @@ private struct SettingsRoot: View {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let store: AppStore
     let storageStore: StorageStore
-    let agentStore: AgentStore
+    let usageStore: UsageStore
+    let updateController: UpdateController
     private var menuBarWidgetController: MenuBarWidgetController?
 
     override init() {
@@ -37,13 +45,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ProcessInfo.processInfo.environment["UNHOG_UI_PREVIEW"] == "1"
         store = AppStore(actionsEnabled: !showsPreviewWindow)
         storageStore = StorageStore()
-        agentStore = AgentStore()
+        usageStore = UsageStore()
+        updateController = UpdateController()
         super.init()
 
         if showsPreviewWindow {
             PreviewSupport.store = store
             PreviewSupport.storageStore = storageStore
-            PreviewSupport.agentStore = agentStore
+            PreviewSupport.usageStore = usageStore
             PreviewSupport.applyFixtureIfRequested(to: store)
         }
         if ProcessInfo.processInfo.environment[
@@ -64,8 +73,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarWidgetController = MenuBarWidgetController(
                 store: store,
                 storageStore: storageStore,
-                agentStore: agentStore
+                usageStore: usageStore
             )
+            Task {
+                await updateController.checkForUpdatesIfNeeded(
+                    automaticallyCheck: store.preferences.general
+                        .automaticallyCheckForUpdates
+                )
+            }
         }
     }
 }

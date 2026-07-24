@@ -41,7 +41,8 @@ Current Mac App Store gaps:
 - The direct-release path uses Developer ID signing, not the Apple Distribution
   identity and provisioning needed for a Mac App Store upload.
 - Storage scanning directly traverses Downloads, Documents, media folders, `~/Library/Developer`, and `~/Library/Caches` without user selection or security-scoped bookmarks.
-- Agent-session scanning directly reads user home-folder tool data.
+- Usage monitoring reads Claude and Codex credentials plus aggregate token
+  history from their CLI data under the user's home folder.
 - Process termination uses both `NSRunningApplication.terminate()` and `Darwin.kill()`, which will fail in the required sandbox.
 
 ## Direct distribution status
@@ -89,7 +90,8 @@ Apple requires complete and accurate metadata, a working review path, and specif
 ## Likely review blockers, ordered
 
 1. **Certain rejection:** core quit/force-quit behavior is incompatible with mandatory App Sandbox.
-2. **Certain functional failure:** current home-folder, agent-session, and storage scans lack sandbox-safe user selection and bookmarks.
+2. **Certain functional failure:** current home-folder usage and storage scans
+   lack sandbox-safe user selection and bookmarks.
 3. **Submission failure:** no sandbox entitlements, Apple Distribution signature, provisioning setup, or Xcode/App Store archive workflow.
 4. **Review risk:** claiming complete process visibility when the sandboxed build can only obtain partial process details.
 5. **Review risk:** enabling launch-at-login or notifications without clear, contextual user consent.
