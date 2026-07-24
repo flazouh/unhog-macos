@@ -15,7 +15,8 @@ it, stops that verified workload, then measures what changed.
 
 ## Current MVP
 
-- Native SwiftUI `MenuBarExtra`; no Electron or web renderer.
+- Native AppKit status item with a SwiftUI popover; no Electron or web
+  renderer. The popover remains available while another Unhog window is open.
 - Adaptive, low-overhead sampling through macOS `libproc`: five seconds while
   calm and two seconds while pressure is rising. Expensive physical-footprint
   reads are limited to processes large or active enough to matter.
