@@ -1,46 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Unhog app icon: charcoal macOS plate with a calm grid of memory cells, one orange cell stepped out of formation">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Unhog app icon: soft light macOS plate with the Relief mark — a violet RAM bar, a cyan CPU tile, and an orange energy tile forming an open square.">
   <!--
     Unhog app icon - 1024pt master.
     Plate: Apple macOS icon grid - 824x824 rounded rect (r 185.4)
-    centered in the 1024 canvas, charcoal with a quiet vertical light.
-    Mark: the Herd, optically centered (ink centroid on plate center),
-    cells in lifted charcoal so the plate stays calm; culprit in
-    #FF8D22 with the 7-degree tilt.
+    centered in the 1024 canvas, soft light with a quiet top highlight.
+    Mark: "Relief" - three resource tiles (violet RAM, cyan CPU, orange
+    energy) arranged as an open square, optically centered on (512,512).
   -->
   <defs>
     <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#23262C"/>
-      <stop offset="1" stop-color="#151619"/>
-    </linearGradient>
-    <linearGradient id="cell" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#4A505B"/>
-      <stop offset="1" stop-color="#3E434D"/>
-    </linearGradient>
-    <linearGradient id="culprit" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FF9B3B"/>
-      <stop offset="1" stop-color="#FF8D22"/>
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EDEFF3"/>
     </linearGradient>
   </defs>
 
   <rect x="100" y="100" width="824" height="824" rx="185.4" fill="url(#plate)"/>
-  <!-- hairline top light to seat the plate in macOS -->
-  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="none" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="2"/>
+  <!-- hairline edge to seat the plate on any wallpaper -->
+  <rect x="100.5" y="100.5" width="823" height="823" rx="184.9" fill="none" stroke="#000000" stroke-opacity="0.05" stroke-width="1"/>
 
-  <!-- Herd mark, scaled 4x from the 132 master, ink-centered on (512,512) -->
-  <g transform="translate(158 233) scale(4.8)">
-    <g fill="url(#cell)">
-      <rect x="18" y="18" width="24" height="24" rx="7"/>
-      <rect x="54" y="18" width="24" height="24" rx="7"/>
-      <rect x="18" y="54" width="24" height="24" rx="7"/>
-      <rect x="54" y="54" width="24" height="24" rx="7"/>
-      <rect x="90" y="54" width="24" height="24" rx="7"/>
-      <rect x="18" y="90" width="24" height="24" rx="7"/>
-      <rect x="54" y="90" width="24" height="24" rx="7"/>
-      <rect x="90" y="90" width="24" height="24" rx="7"/>
-    </g>
-    <!-- socket -->
-    <rect x="90" y="18" width="24" height="24" rx="7" fill="#FFFFFF" opacity="0.08"/>
-    <!-- culprit -->
-    <rect x="104" y="4" width="24" height="24" rx="7" fill="url(#culprit)" transform="rotate(7 116 16)"/>
+  <!-- Relief mark, ink-centered on (512,512): scale 7.8 from the 100 master -->
+  <g transform="translate(122 122) scale(7.8)">
+    <path fill="#9758FF" d="M18 30C18 23.4 23.4 18 30 18H48V82H30C23.4 82 18 76.6 18 70V30Z"/>
+    <path fill="#4ACFFF" d="M56 18H70C76.6 18 82 23.4 82 30V48H66C60.5 48 56 43.5 56 38V18Z"/>
+    <path fill="#FF8D22" d="M56 58H82V70C82 76.6 76.6 82 70 82H56V58Z"/>
   </g>
 </svg>
