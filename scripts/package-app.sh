@@ -13,6 +13,7 @@ env \
   XDG_CACHE_HOME="$UNHOG_BUILD/cache" \
   swift build \
     --package-path "$UNHOG_ROOT" \
+    --product Unhog \
     --configuration release \
     --disable-sandbox
 

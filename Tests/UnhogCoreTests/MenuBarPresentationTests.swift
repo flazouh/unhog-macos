@@ -177,7 +177,7 @@ struct MenuBarPresentationTests {
             parentPID: 1,
             ownerUID: 501,
             name: "bun",
-            executablePath: "/Users/alex/.bun/bin/bun",
+            executablePath: "/Users/example/.bun/bin/bun",
             cpuPercent: cpu,
             memoryBytes: memory
         )

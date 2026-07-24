@@ -2,7 +2,7 @@
 
 Unhog is a native macOS menu-bar app that answers one question:
 
-> What is draining this Mac, and can I stop it safely?
+> What is hogging this Mac, and can I stop it safely?
 
 It groups related processes into understandable families such as Playwright,
 TypeScript servers, Nx, and normal applications. CPU is measured from real
@@ -111,6 +111,13 @@ For a local signing test that does not contact Apple:
 Test builds use the clearly marked
 `dist/testing/Unhog-<version>-NOT-NOTARIZED.dmg` path and can never overwrite a
 public release. Never publish a release produced with `--skip-notarization`.
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
+changing process grouping or termination behavior.
+
+Unhog is available under the [MIT License](LICENSE).
 
 ## Tests
 

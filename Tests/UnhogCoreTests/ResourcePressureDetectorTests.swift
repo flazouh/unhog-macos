@@ -22,7 +22,7 @@ struct ResourcePressureDetectorTests {
         let start = Date(timeIntervalSince1970: 1_000)
         let bun = group(
             name: "bun",
-            path: "/Users/alex/.bun/bin/bun",
+            path: "/Users/example/.bun/bin/bun",
             cpu: 18,
             memory: 3_860_000_000
         )

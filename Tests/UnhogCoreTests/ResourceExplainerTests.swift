@@ -9,10 +9,10 @@ struct ResourceExplainerTests {
 
         let explanation = ResourceExplainer().explain(group)
 
-        #expect(explanation.workloadTitle == "FluentAI · ds-rebuild stack")
+        #expect(explanation.workloadTitle == "sample-app stack")
         #expect(
             explanation.processChain
-                == ["FluentAI · ds-rebuild", "bun", "esbuild"]
+                == ["sample-app", "bun", "esbuild"]
         )
         #expect(explanation.topWorker.name == "esbuild")
         #expect(explanation.topWorker.memoryBytes == 3_000_000_000)
@@ -74,10 +74,10 @@ struct ResourceExplainerTests {
             ownerUID: 501,
             name: name,
             executablePath: name == "bun"
-                ? "/Users/alex/.bun/bin/bun"
-                : "/Users/alex/Documents/fluentai/node_modules/esbuild",
+                ? "/Users/example/.bun/bin/bun"
+                : "/Users/example/Projects/sample-app/node_modules/esbuild",
             workingDirectory:
-                "/Users/alex/Documents/fluentai.worktrees/ds-rebuild",
+                "/Users/example/Projects/sample-app",
             cpuPercent: cpu,
             memoryBytes: memory
         )

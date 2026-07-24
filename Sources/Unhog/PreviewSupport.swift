@@ -151,7 +151,7 @@ enum PreviewSupport {
 
     private static func developerStack(rootPID: Int32) -> ProcessGroup {
         let workingDirectory =
-            "/Users/alex/Documents/fluentai.worktrees/ds-rebuild"
+            "/Users/example/Projects/sample-app"
         let processes = [
             ProcessSample(
                 identity: ProcessIdentity(
@@ -161,7 +161,7 @@ enum PreviewSupport {
                 parentPID: 1,
                 ownerUID: getuid(),
                 name: "bun",
-                executablePath: "/Users/alex/.bun/bin/bun",
+                executablePath: "/Users/example/.bun/bin/bun",
                 workingDirectory: workingDirectory,
                 cpuPercent: 24,
                 memoryBytes: 720_000_000

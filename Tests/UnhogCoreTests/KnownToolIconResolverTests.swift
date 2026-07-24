@@ -10,7 +10,7 @@ struct KnownToolIconResolverTests {
                 for: group(
                     kind: .application("bun"),
                     name: "bun",
-                    path: "/Users/alex/.bun/bin/bun"
+                    path: "/Users/example/.bun/bin/bun"
                 )
             ) == .bun
         )
@@ -94,7 +94,7 @@ struct KnownToolIconResolverTests {
                     ownerUID: 501,
                     name: name,
                     executablePath: path,
-                    workingDirectory: "/Users/alex/Documents/fluentai",
+                    workingDirectory: "/Users/example/Projects/sample-app",
                     cpuPercent: 50,
                     memoryBytes: 500_000_000
                 )

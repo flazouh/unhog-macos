@@ -1,6 +1,6 @@
 import UnhogCore
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 actor NotificationController {
     private let center = UNUserNotificationCenter.current()

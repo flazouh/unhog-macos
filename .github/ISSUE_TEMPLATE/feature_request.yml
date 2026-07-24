@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a focused improvement to Unhog
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should Unhog solve?
+      description: Describe the user problem before proposing an interface.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would a good solution feel like?
+      description: A sketch or example is welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Process-safety considerations
+      description: Could this affect which processes Unhog monitors or stops?
+

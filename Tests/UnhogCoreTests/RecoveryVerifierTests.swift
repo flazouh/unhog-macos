@@ -62,7 +62,7 @@ struct RecoveryVerifierTests {
         #expect(receipt.memoryReductionBytes == 3_860_000_000)
         #expect(receipt.cpuDropPoints == 184)
         #expect(receipt.stoppedProcessCount == 2)
-        #expect(receipt.contextLabel == "FluentAI · ds-rebuild")
+        #expect(receipt.contextLabel == "sample-app")
     }
 
     @Test("An existing sibling workload is not mistaken for a restart")
@@ -105,7 +105,7 @@ struct RecoveryVerifierTests {
             pid: rootPID,
             parentPID: 1,
             name: "bun",
-            path: "/Users/alex/.bun/bin/bun",
+            path: "/Users/example/.bun/bin/bun",
             memory: memory / 2,
             cpu: cpu / 2
         )
@@ -113,7 +113,7 @@ struct RecoveryVerifierTests {
             pid: workerPID,
             parentPID: rootPID,
             name: "esbuild",
-            path: "/Users/alex/Documents/fluentai/node_modules/esbuild",
+            path: "/Users/example/Projects/sample-app/node_modules/esbuild",
             memory: memory - memory / 2,
             cpu: cpu - cpu / 2
         )
@@ -144,7 +144,7 @@ struct RecoveryVerifierTests {
             name: name,
             executablePath: path,
             workingDirectory:
-                "/Users/alex/Documents/fluentai.worktrees/ds-rebuild",
+                "/Users/example/Projects/sample-app",
             cpuPercent: cpu,
             memoryBytes: memory
         )
