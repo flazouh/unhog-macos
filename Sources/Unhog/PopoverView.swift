@@ -72,14 +72,6 @@ struct PopoverView: View {
                 storageStore.applyScanningPreviewFixture()
             }
         }
-        .onChange(of: selectedSection) { _, section in
-            switch section {
-            case .activity:
-                storageStore.cancelScan()
-            case .storage:
-                storageStore.prepare()
-            }
-        }
     }
 
     private var activityContent: some View {
