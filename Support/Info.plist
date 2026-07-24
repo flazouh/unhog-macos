@@ -5,15 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Culprit</string>
+    <string>Unhog</string>
     <key>CFBundleExecutable</key>
-    <string>Culprit</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.alex.culprit</string>
-    <key>CFBundleInfoDictionaryVersion</key>
+    <string>Unhog</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.alex.unhog</string>
+	<key>CFBundleIconFile</key>
+	<string>Unhog</string>
+	<key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Culprit</string>
+    <string>Unhog</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

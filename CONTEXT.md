@@ -1,6 +1,6 @@
-# Culprit Resource Control
+# Unhog Resource Control
 
-Culprit explains resource-heavy local workloads and lets the user stop a
+Unhog explains resource-heavy local workloads and lets the user stop a
 verified scope without pretending process relationships are more certain than
 the observed process tree.
 
@@ -9,7 +9,7 @@ the observed process tree.
 **Workload**:
 A related process family presented as one resource consumer and one default
 stop scope.
-_Avoid_: App, culprit process, process pile
+_Avoid_: App, problem process, process pile
 
 **Branch**:
 One process inside a workload together with all of its observed descendants.

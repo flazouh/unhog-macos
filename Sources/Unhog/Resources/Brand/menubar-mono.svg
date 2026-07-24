@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="Unhog menu bar resource map">
+  <title>Unhog</title>
+  <g fill="#000000">
+    <rect x=".4" y="6.4" width="2.7" height="4.6" rx=".7"/>
+    <rect x="3.4" y="4.5" width="5" height="6.5" rx=".9"/>
+    <rect x="8.7" y="6.4" width="2.25" height="4.6" rx=".7"/>
+    <rect x="11.25" y="6.4" width="1.8" height="4.6" rx=".65"/>
+    <rect x="13.35" y="6.4" width="1.35" height="4.6" rx=".6"/>
+  </g>
+</svg>

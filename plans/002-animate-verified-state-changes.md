@@ -12,12 +12,12 @@ Attention, stopping, and recovery replace each other without a useful visual
 relationship. A transition is declared, but no phase animation drives it:
 
 ```swift
-// Sources/Culprit/ResourceLensView.swift:18 — current
+// Sources/Unhog/ResourceLensView.swift:18 — current
 content
     .transition(.opacity)
 ```
 
-The important product story—“this workload drained resources, Culprit stopped
+The important product story—“this workload drained resources, Unhog stopped
 it, then verified the change”—currently teleports.
 
 ## Target
@@ -52,7 +52,7 @@ Do not animate width, height, padding, or layout position.
 
 ## Repo conventions to follow
 
-- Recovery truth comes from `Sources/CulpritCore/RecoveryVerifier.swift`.
+- Recovery truth comes from `Sources/UnhogCore/RecoveryVerifier.swift`.
 - `ResourceLensView.recovery(_:)` is the only recovery presentation entry.
 - `accessibilityReduceMotion` is already read by `ResourceLensView`.
 - The receipt already has exact before/after values; preserve them.

@@ -10,7 +10,7 @@
 
 The current menu bar label changes SF Symbol, but it does not explain whether
 CPU or memory caused the state. The popover header then repeats the same
-status. Users must open Culprit before learning why it wants attention.
+status. Users must open Unhog before learning why it wants attention.
 
 ## Target
 
@@ -39,7 +39,7 @@ MenuBarPresentation.make(
     phase: ResourceLensPhase,
     focusedGroup: ProcessGroup?,
     incident: ResourceIncident?,
-    preferences: CulpritPreferences
+    preferences: UnhogPreferences
 ) -> MenuBarPresentation
 ```
 
@@ -49,11 +49,11 @@ creating a SwiftUI scene.
 ## Steps
 
 1. Write failing tests for every state and priority edge.
-2. Add `MenuBarPresentation` to `CulpritCore`.
+2. Add `MenuBarPresentation` to `UnhogCore`.
 3. Add Adaptive, Icon only, Top CPU, and Top RAM display modes.
 4. Replace `AppStore.menuBarSymbol` and its separate accessibility switch
    with the presenter output.
-5. Render icon plus optional compact label in `CulpritApp`.
+5. Render icon plus optional compact label in `UnhogApp`.
 6. Use monospaced digits and stable width for the optional label.
 7. Return Recovered to Calm after eight seconds without a repeating timer.
 8. Show only verified recovered CPU or memory in the temporary receipt label.

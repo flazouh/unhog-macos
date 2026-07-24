@@ -11,17 +11,17 @@
 Motion values are scattered:
 
 ```swift
-// Sources/Culprit/InstalledMemoryMapView.swift:60 — current
+// Sources/Unhog/InstalledMemoryMapView.swift:60 — current
 .animation(
     reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.86),
     value: composition
 )
 
-// Sources/Culprit/ProcessActivityRow.swift:100 — current
+// Sources/Unhog/ProcessActivityRow.swift:100 — current
 .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: isExpanded)
 .animation(.easeOut(duration: 0.12), value: isHovered)
 
-// Sources/Culprit/DesignSystem.swift:61 — current
+// Sources/Unhog/DesignSystem.swift:61 — current
 .scaleEffect(configuration.isPressed ? 0.985 : 1)
 .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
 ```
@@ -32,7 +32,7 @@ feedback entirely but still leaves button scale movement.
 
 ## Target
 
-Add these SwiftUI motion tokens under `CulpritTheme.Motion`:
+Add these SwiftUI motion tokens under `UnhogTheme.Motion`:
 
 ```swift
 static let quick = Animation.timingCurve(
@@ -59,15 +59,15 @@ static let reduced = Animation.easeOut(duration: 0.20)
 
 ## Repo conventions to follow
 
-- Design tokens live in `Sources/Culprit/DesignSystem.swift`.
+- Design tokens live in `Sources/Unhog/DesignSystem.swift`.
 - Both `InstalledMemoryMapView` and `ProcessActivityRow` already read
   `accessibilityReduceMotion`.
-- Culprit is a crisp diagnostic dashboard: no bounce, overshoot, or looping
+- Unhog is a crisp diagnostic dashboard: no bounce, overshoot, or looping
   decorative motion.
 
 ## Steps
 
-1. Add `CulpritTheme.Motion` with the four exact tokens above.
+1. Add `UnhogTheme.Motion` with the four exact tokens above.
 2. Remove `.animation(..., value: composition)` from
    `InstalledMemoryMapView`.
 3. Apply an animation only to segment selection opacity.

@@ -12,7 +12,7 @@ The focused incident is a stack of text. Users must read three lines before
 they can compare CPU, RAM, battery impact, and duration.
 
 ```swift
-// Sources/Culprit/ResourceLensView.swift:101 — current
+// Sources/Unhog/ResourceLensView.swift:101 — current
 VStack(alignment: .leading, spacing: 5) {
     Text("\(MetricFormatting.memory(group.memoryBytes)) · "
         + "\(MetricFormatting.ramShare(store.ramShare(for: group))) "
@@ -63,16 +63,16 @@ With Reduce Motion, use a 200 ms opacity fade and no scale movement.
 
 ## Repo conventions to follow
 
-- Semantic colors live in `Sources/Culprit/DesignSystem.swift`.
-- Metric formatting lives in `Sources/Culprit/Formatting.swift`.
+- Semantic colors live in `Sources/Unhog/DesignSystem.swift`.
+- Metric formatting lives in `Sources/Unhog/Formatting.swift`.
 - The current view reads prepared domain values from `AppStore`; it never
   samples processes itself.
-- Use `CulpritTheme.appColor(for:)` for identity and
-  `CulpritTheme.attention` only for unusual impact.
+- Use `UnhogTheme.appColor(for:)` for identity and
+  `UnhogTheme.attention` only for unusual impact.
 
 ## Steps
 
-1. Add `Sources/Culprit/DrainSignatureView.swift`.
+1. Add `Sources/Unhog/DrainSignatureView.swift`.
 2. Define a small value type, `DrainSignature`, containing:
    `primarySignal`, `cpuPercent`, `logicalCoreCount`, `memoryBytes`,
    `installedRAMShare`, `batteryEstimate`, and `duration`.

@@ -1,6 +1,6 @@
-# Culprit
+# Unhog
 
-Culprit is a native macOS menu-bar app that answers one question:
+Unhog is a native macOS menu-bar app that answers one question:
 
 > What is draining this Mac, and can I stop it safely?
 
@@ -10,7 +10,7 @@ process-time deltas; memory uses physical footprint with resident memory as a
 fallback. All data stays on the Mac.
 
 Its Resource Lens shows each major workload as a share of installed RAM. When
-something looks wrong, Culprit explains the project and process chain behind
+something looks wrong, Unhog explains the project and process chain behind
 it, stops that verified workload, then measures what changed.
 
 ## Current MVP
@@ -35,7 +35,7 @@ it, stops that verified workload, then measures what changed.
 - A measured before-and-after recovery receipt.
 - PID plus process-start-time validation immediately before every signal.
 - Permanent protection for macOS system processes, other users’ processes,
-  PID 0/1, and Culprit itself.
+  PID 0/1, and Unhog itself.
 - Borderless interface with app colours used for identity and amber reserved
   for attention.
 
@@ -49,7 +49,7 @@ Requirements:
 ```sh
 chmod +x scripts/package-app.sh
 ./scripts/package-app.sh
-open dist/Culprit.app
+open dist/Unhog.app
 ```
 
 The packaged development app is ad-hoc signed for local use. Public
@@ -104,7 +104,7 @@ immediately before sending `SIGTERM` or `SIGKILL`.
 
 ## Known limits
 
-- Culprit can only stop processes owned by the current user.
+- Unhog can only stop processes owned by the current user.
 - Family detection is heuristic and currently specializes in the developer
   tools that caused the original incidents.
 - The grey RAM-map remainder deliberately combines macOS, untracked processes,

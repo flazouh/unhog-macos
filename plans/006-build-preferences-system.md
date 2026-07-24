@@ -38,7 +38,7 @@ and diagnostics.
 Use a pure preference compiler:
 
 ```swift
-PreferencePolicies.make(from: CulpritPreferences) -> (
+PreferencePolicies.make(from: UnhogPreferences) -> (
     monitoring: MonitoringPolicy,
     menuBar: MenuBarPolicy,
     notifications: NotificationPolicy

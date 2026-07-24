@@ -11,7 +11,7 @@
 The only termination scope is the whole `ProcessGroup`:
 
 ```swift
-// Sources/CulpritCore/TerminationPolicy.swift:21 — current
+// Sources/UnhogCore/TerminationPolicy.swift:21 — current
 public func plan(for group: ProcessGroup) -> TerminationPlan {
     // ...
     targets: group.processes
@@ -74,7 +74,7 @@ recreates it, say `Chromium is running again`; never silently repeat the stop.
 
 ## Steps
 
-1. Add `ProcessBranch` and `ProcessBranchResolver` to CulpritCore.
+1. Add `ProcessBranch` and `ProcessBranchResolver` to UnhogCore.
 2. Before implementation, add public-seam tests:
    - selecting Chromium includes Chromium and all descendants;
    - ancestors and sibling branches are excluded;

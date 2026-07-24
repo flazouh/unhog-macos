@@ -3,26 +3,26 @@
 import PackageDescription
 
 let package = Package(
-    name: "Culprit",
+    name: "Unhog",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .library(name: "CulpritCore", targets: ["CulpritCore"]),
-        .executable(name: "Culprit", targets: ["Culprit"])
+        .library(name: "UnhogCore", targets: ["UnhogCore"]),
+        .executable(name: "Unhog", targets: ["Unhog"])
     ],
     targets: [
-        .target(name: "CulpritCore"),
+        .target(name: "UnhogCore"),
         .executableTarget(
-            name: "Culprit",
-            dependencies: ["CulpritCore"],
+            name: "Unhog",
+            dependencies: ["UnhogCore"],
             resources: [
                 .process("Resources")
             ]
         ),
         .testTarget(
-            name: "CulpritCoreTests",
-            dependencies: ["CulpritCore"]
+            name: "UnhogCoreTests",
+            dependencies: ["UnhogCore"]
         )
     ]
 )
