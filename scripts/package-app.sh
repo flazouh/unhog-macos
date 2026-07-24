@@ -5,6 +5,7 @@ UNHOG_ROOT="${0:A:h:h}"
 UNHOG_BUILD="$UNHOG_ROOT/.build"
 UNHOG_APP="$UNHOG_ROOT/dist/Unhog.app"
 UNHOG_CONTENTS="$UNHOG_APP/Contents"
+UNHOG_SIGN_IDENTITY="${UNHOG_SIGN_IDENTITY:--}"
 
 env \
   CLANG_MODULE_CACHE_PATH="$UNHOG_BUILD/cache/clang" \
@@ -28,6 +29,15 @@ cp -R \
   "$UNHOG_BUILD/release/Unhog_Unhog.bundle" \
   "$UNHOG_CONTENTS/Resources/Unhog_Unhog.bundle"
 
-codesign --force --sign - "$UNHOG_APP"
+if [[ "$UNHOG_SIGN_IDENTITY" == "-" ]]; then
+  codesign --force --sign - "$UNHOG_APP"
+else
+  codesign \
+    --force \
+    --options runtime \
+    --timestamp \
+    --sign "$UNHOG_SIGN_IDENTITY" \
+    "$UNHOG_APP"
+fi
 
 print "Built $UNHOG_APP"

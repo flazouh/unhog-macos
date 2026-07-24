@@ -57,8 +57,60 @@ chmod +x scripts/package-app.sh
 open dist/Unhog.app
 ```
 
-The packaged development app is ad-hoc signed for local use. Public
-distribution will need a Developer ID signature and Apple notarization.
+The packaged development app is ad-hoc signed for local use.
+
+## Publish outside the Mac App Store
+
+The full Unhog app is distributed directly because the Mac App Store sandbox
+would block process monitoring and one-click stopping.
+
+Releases are locked to:
+
+- Developer ID: `Alexandre de Pape`
+- Apple team: `GD7PWQBWJV`
+
+Never put an Apple password or API key in this repository. Save notarization
+credentials once in the macOS Keychain:
+
+```sh
+xcrun notarytool store-credentials "unhog-notary-alexandre" \
+  --apple-id "YOUR_APPLE_ID" \
+  --team-id "GD7PWQBWJV"
+```
+
+The command securely asks for an app-specific password. Then build the public
+download:
+
+```sh
+./scripts/release-app.sh
+```
+
+This creates `dist/Unhog-<version>.dmg`, signs it with Developer ID, enables
+Hardened Runtime, submits it to Apple, staples the approval ticket, and runs a
+final Gatekeeper check. It also creates a matching SHA-256 checksum and records
+the exact Git commit used to build the app.
+
+After pushing the clean release commit to `origin/main`, publish both files as
+a public GitHub Release:
+
+```sh
+./scripts/publish-github-release.sh
+```
+
+The publishing script refuses dirty, unpushed, or mismatched build code,
+rechecks the SHA-256 checksum and Apple’s stapled ticket, then creates the
+download at
+`https://github.com/flazouh/unhog-macos/releases`.
+
+For a local signing test that does not contact Apple:
+
+```sh
+./scripts/release-app.sh --skip-notarization
+```
+
+Test builds use the clearly marked
+`dist/testing/Unhog-<version>-NOT-NOTARIZED.dmg` path and can never overwrite a
+public release. Never publish a release produced with `--skip-notarization`.
 
 ## Tests
 
