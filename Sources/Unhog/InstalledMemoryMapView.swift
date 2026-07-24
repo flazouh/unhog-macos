@@ -10,12 +10,8 @@ struct InstalledMemoryMapView: View {
     @State private var revealed = false
 
     private let barHeight: CGFloat = 18
-    private let leaderHeight: CGFloat = 10
-    private let chipHeight: CGFloat = 16
-    private let chipIconSize: CGFloat = 12
-    private let chipIconSourceSize: CGFloat = 18
+    private let segmentIconSize: CGFloat = 13
     private let segmentSpacing: CGFloat = 1
-    private let chipGap: CGFloat = 8
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -35,7 +31,7 @@ struct InstalledMemoryMapView: View {
             GeometryReader { proxy in
                 memoryChart(width: proxy.size.width)
             }
-            .frame(height: barHeight + leaderHeight + chipHeight)
+            .frame(height: barHeight)
         }
         .onAppear {
             if reduceMotion {
@@ -53,46 +49,8 @@ struct InstalledMemoryMapView: View {
         width: CGFloat
     ) -> some View {
         let geometry = chartGeometry(width: width)
-        let chips = chipModels(
-            for: geometry.segments,
-            availableWidth: width
-        )
 
-        return ZStack(alignment: .topLeading) {
-            memoryBar(geometry: geometry, width: width)
-
-            ForEach(chips) { chip in
-                if chip.placement.displacement > 6 {
-                    leader(for: chip)
-                        .trim(from: 0, to: revealed ? 1 : 0)
-                        .stroke(
-                            UnhogTheme.identityColor(
-                                for: chip.segment.group.displayName
-                            ),
-                            style: StrokeStyle(
-                                lineWidth: 1.75,
-                                lineCap: .round
-                            )
-                        )
-                }
-            }
-
-            ForEach(chips) { chip in
-                appChip(chip)
-                    .frame(
-                        width: chip.width,
-                        height: chipHeight,
-                        alignment: .leading
-                    )
-                    .position(
-                        x: revealed
-                            ? chip.placement.center
-                            : chip.preferredCenter,
-                        y: barHeight + leaderHeight + chipHeight / 2
-                    )
-                    .opacity(revealed ? 1 : 0)
-            }
-        }
+        return memoryBar(geometry: geometry, width: width)
         .animation(
             reduceMotion ? nil : UnhogTheme.motionEnter,
             value: revealed
@@ -151,13 +109,22 @@ struct InstalledMemoryMapView: View {
                 for: item.segment.group.displayName
             )
 
-            if memoryValueFits(
-                bytes: item.segment.bytes,
-                width: item.width
-            ) {
-                memoryValue(item.segment.bytes)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 1)
+            if segmentIconFits(width: item.width) {
+                HStack(spacing: 3) {
+                    ProcessIconView(
+                        group: item.segment.group,
+                        size: segmentIconSize
+                    )
+
+                    if memoryValueFitsBesideIcon(
+                        bytes: item.segment.bytes,
+                        width: item.width
+                    ) {
+                        memoryValue(item.segment.bytes)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 2)
             }
         }
     }
@@ -179,67 +146,6 @@ struct InstalledMemoryMapView: View {
                 .padding(.horizontal, 3)
             }
         }
-    }
-
-    private func appChip(
-        _ chip: MemoryChipModel
-    ) -> some View {
-        HStack(spacing: 3) {
-            ProcessIconView(
-                group: chip.segment.group,
-                size: chipIconSourceSize
-            )
-            .scaleEffect(chipIconSize / chipIconSourceSize)
-            .frame(width: chipIconSize, height: chipIconSize)
-            .clipped()
-
-            Text(chip.label)
-                .font(
-                    .system(
-                        size: 9,
-                        weight: chip.isFocused
-                            ? .semibold
-                            : .medium
-                    )
-                )
-                .foregroundStyle(
-                    chip.isFocused
-                        ? .primary
-                        : .secondary
-                )
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func leader(
-        for chip: MemoryChipModel
-    ) -> Path {
-        let start = CGPoint(
-            x: chip.preferredCenter,
-            y: barHeight
-        )
-        let end = CGPoint(
-            x: chip.placement.center,
-            y: barHeight + leaderHeight
-        )
-        let verticalHandle = leaderHeight * 0.4
-
-        var path = Path()
-        path.move(to: start)
-        path.addCurve(
-            to: end,
-            control1: CGPoint(
-                x: start.x,
-                y: start.y + verticalHandle
-            ),
-            control2: CGPoint(
-                x: end.x,
-                y: end.y - verticalHandle
-            )
-        )
-        return path
     }
 
     private func chartGeometry(
@@ -269,71 +175,6 @@ struct InstalledMemoryMapView: View {
         )
     }
 
-    private func chipModels(
-        for segments: [SegmentGeometry],
-        availableWidth: CGFloat
-    ) -> [MemoryChipModel] {
-        guard !segments.isEmpty else { return [] }
-
-        let totalGaps = chipGap * CGFloat(max(0, segments.count - 1))
-        let widthPerChip = max(
-            0,
-            (availableWidth - totalGaps) / CGFloat(segments.count)
-        )
-        let maximumChipWidth = min(120, widthPerChip)
-
-        let drafts = segments.enumerated().map { index, item in
-            let label = item.segment.group.displayName
-            let focused = item.segment.group.id == focusedGroupID
-
-            return MemoryChipDraft(
-                id: index,
-                segment: item.segment,
-                preferredCenter: item.midX,
-                label: label,
-                width: min(
-                    maximumChipWidth,
-                    measuredChipWidth(
-                        label: label,
-                        isFocused: focused
-                    )
-                ),
-                isFocused: focused
-            )
-        }
-
-        let placements = MemoryChipLayout.place(
-            drafts.map {
-                MemoryChipLayoutItem(
-                    id: $0.id,
-                    preferredCenter: Double($0.preferredCenter),
-                    width: Double($0.width),
-                    isFocused: $0.isFocused
-                )
-            },
-            availableWidth: Double(availableWidth),
-            minimumGap: Double(chipGap)
-        )
-        let placementsByID = Dictionary(
-            uniqueKeysWithValues: placements.map { ($0.id, $0) }
-        )
-
-        return drafts.compactMap { draft in
-            guard let placement = placementsByID[draft.id] else {
-                return nil
-            }
-            return MemoryChipModel(
-                id: draft.id,
-                segment: draft.segment,
-                preferredCenter: draft.preferredCenter,
-                label: draft.label,
-                width: draft.width,
-                isFocused: draft.isFocused,
-                placement: placement
-            )
-        }
-    }
-
     private func remainderValueFits(
         width: CGFloat
     ) -> Bool {
@@ -348,32 +189,21 @@ struct InstalledMemoryMapView: View {
         ) + 6 <= width
     }
 
-    private func memoryValueFits(
+    private func memoryValueFitsBesideIcon(
         bytes: UInt64,
         width: CGFloat
     ) -> Bool {
-        guard width >= 24 else { return false }
-
         return measuredTextWidth(
             MetricFormatting.memory(bytes),
             font: .systemFont(
                 ofSize: 7.5 * 0.72,
                 weight: .semibold
             )
-        ) + 2 <= width
+        ) + segmentIconSize + 9 <= width
     }
 
-    private func measuredChipWidth(
-        label: String,
-        isFocused: Bool
-    ) -> CGFloat {
-        measuredTextWidth(
-            label,
-            font: .systemFont(
-                ofSize: 9,
-                weight: isFocused ? .semibold : .medium
-            )
-        ) + 15
+    private func segmentIconFits(width: CGFloat) -> Bool {
+        segmentIconSize + 4 <= width
     }
 
     private func measuredTextWidth(
@@ -418,27 +248,4 @@ private struct SegmentGeometry: Identifiable {
     let segment: AppMemorySegment
     let minimumX: CGFloat
     let width: CGFloat
-
-    var midX: CGFloat {
-        minimumX + width / 2
-    }
-}
-
-private struct MemoryChipDraft {
-    let id: Int
-    let segment: AppMemorySegment
-    let preferredCenter: CGFloat
-    let label: String
-    let width: CGFloat
-    let isFocused: Bool
-}
-
-private struct MemoryChipModel: Identifiable {
-    let id: Int
-    let segment: AppMemorySegment
-    let preferredCenter: CGFloat
-    let label: String
-    let width: CGFloat
-    let isFocused: Bool
-    let placement: MemoryChipPlacement
 }
