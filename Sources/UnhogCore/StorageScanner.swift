@@ -108,6 +108,36 @@ public struct StorageFolderUsage: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct StorageScanProgress: Equatable, Sendable {
+    public let folders: [StorageFolderUsage]
+    public let activeLocationID: String?
+    public let completedLocationCount: Int
+    public let totalLocationCount: Int
+
+    public init(
+        folders: [StorageFolderUsage],
+        activeLocationID: String?,
+        completedLocationCount: Int,
+        totalLocationCount: Int
+    ) {
+        self.folders = folders
+        self.activeLocationID = activeLocationID
+        self.completedLocationCount = completedLocationCount
+        self.totalLocationCount = totalLocationCount
+    }
+
+    public var discoveredBytes: UInt64 {
+        folders.reduce(0) { total, folder in
+            let addition = total.addingReportingOverflow(folder.bytes)
+            return addition.overflow ? UInt64.max : addition.partialValue
+        }
+    }
+
+    public var discoveredFileCount: Int {
+        folders.reduce(0) { $0 + $1.fileCount }
+    }
+}
+
 public struct StorageScanner: Sendable {
     public init() {}
 
@@ -132,15 +162,57 @@ public struct StorageScanner: Sendable {
     public func scan(
         _ locations: [StorageLocation]
     ) throws -> [StorageFolderUsage] {
+        try scan(locations, onProgress: { _ in })
+    }
+
+    public func scan(
+        _ locations: [StorageLocation],
+        onProgress: (StorageScanProgress) -> Void
+    ) throws -> [StorageFolderUsage] {
         var results: [StorageFolderUsage] = []
         results.reserveCapacity(locations.count)
 
-        for location in locations {
+        for (index, location) in locations.enumerated() {
             try Task.checkCancellation()
-            results.append(try usage(for: location))
+            onProgress(
+                progress(
+                    folders: results,
+                    activeLocationID: location.id,
+                    completedLocationCount: results.count,
+                    totalLocationCount: locations.count
+                )
+            )
+            let usage = try usage(for: location) { partialUsage in
+                onProgress(
+                    progress(
+                        folders: results + [partialUsage],
+                        activeLocationID: location.id,
+                        completedLocationCount: results.count,
+                        totalLocationCount: locations.count
+                    )
+                )
+            }
+            results.append(usage)
+            let nextLocationID = locations.indices.contains(index + 1)
+                ? locations[index + 1].id
+                : nil
+            onProgress(
+                progress(
+                    folders: results,
+                    activeLocationID: nextLocationID,
+                    completedLocationCount: results.count,
+                    totalLocationCount: locations.count
+                )
+            )
         }
 
-        return results.sorted { left, right in
+        return sorted(results)
+    }
+
+    private func sorted(
+        _ folders: [StorageFolderUsage]
+    ) -> [StorageFolderUsage] {
+        folders.sorted { left, right in
             if left.status != right.status {
                 return left.status == .available
             }
@@ -152,8 +224,23 @@ public struct StorageScanner: Sendable {
         }
     }
 
+    private func progress(
+        folders: [StorageFolderUsage],
+        activeLocationID: String?,
+        completedLocationCount: Int,
+        totalLocationCount: Int
+    ) -> StorageScanProgress {
+        StorageScanProgress(
+            folders: sorted(folders),
+            activeLocationID: activeLocationID,
+            completedLocationCount: completedLocationCount,
+            totalLocationCount: totalLocationCount
+        )
+    }
+
     private func usage(
-        for location: StorageLocation
+        for location: StorageLocation,
+        onProgress: (StorageFolderUsage) -> Void
     ) throws -> StorageFolderUsage {
         let fileManager = FileManager.default
         var isDirectory: ObjCBool = false
@@ -203,9 +290,31 @@ public struct StorageScanner: Sendable {
             let addition = bytes.addingReportingOverflow(fileBytes)
             bytes = addition.overflow ? UInt64.max : addition.partialValue
             fileCount += 1
+
+            if fileCount <= 8 || visitedCount.isMultiple(of: 128) {
+                onProgress(
+                    availableUsage(
+                        for: location,
+                        bytes: bytes,
+                        fileCount: fileCount
+                    )
+                )
+            }
         }
 
-        return StorageFolderUsage(
+        return availableUsage(
+            for: location,
+            bytes: bytes,
+            fileCount: fileCount
+        )
+    }
+
+    private func availableUsage(
+        for location: StorageLocation,
+        bytes: UInt64,
+        fileCount: Int
+    ) -> StorageFolderUsage {
+        StorageFolderUsage(
             id: location.id,
             name: location.name,
             url: location.url,

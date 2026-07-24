@@ -68,8 +68,7 @@ struct ResourceLensView: View {
 
     private var measuring: some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .controlSize(.small)
+            LoadingIndicator(size: 12)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Measuring current resource use")
                     .font(.system(size: 14, weight: .semibold))
@@ -218,8 +217,7 @@ struct ResourceLensView: View {
             if isStopping(group) {
                 Button {} label: {
                     HStack(spacing: 7) {
-                        ProgressView()
-                            .controlSize(.small)
+                        LoadingIndicator(size: 11)
                         Text(stoppingTitle(group))
                             .lineLimit(1)
                     }
@@ -477,8 +475,7 @@ struct ResourceLensView: View {
                     .buttonStyle(BorderlessActionStyle(tone: .secondary))
                 } else if store.stopState
                     == .forceKilling(receipt.originalGroupID) {
-                    ProgressView()
-                        .controlSize(.small)
+                    LoadingIndicator(size: 11)
                     Text("Force quitting…")
                         .font(.system(size: 11, weight: .medium))
                 } else {

@@ -103,7 +103,7 @@ public struct MenuBarPresentation: Equatable, Sendable {
         switch phase {
         case .measuring:
             return .init(
-                symbolName: "circle.dotted",
+                symbolName: UnhogSymbolName.loading,
                 compactLabel: nil,
                 accessibilityLabel: "Unhog. Measuring system activity."
             )
@@ -136,7 +136,7 @@ public struct MenuBarPresentation: Equatable, Sendable {
             )
         case let .stopping(incident):
             return .init(
-                symbolName: "ellipsis.circle",
+                symbolName: UnhogSymbolName.loading,
                 compactLabel: incident.map {
                     incidentLabel(
                         $0,

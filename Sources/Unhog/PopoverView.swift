@@ -7,7 +7,7 @@ struct PopoverView: View {
     @State private var selectedSection: PopoverSection =
         ProcessInfo.processInfo.environment[
             "UNHOG_UI_PREVIEW_STATE"
-        ] == "storage" ? .storage : .activity
+        ]?.hasPrefix("storage") == true ? .storage : .activity
 
     var body: some View {
         VStack(spacing: 0) {
@@ -61,10 +61,15 @@ struct PopoverView: View {
             )
         }
         .onAppear {
-            if ProcessInfo.processInfo.environment[
+            let previewState = ProcessInfo.processInfo.environment[
                 "UNHOG_UI_PREVIEW_STATE"
-            ] == "storage" {
+            ]
+            if previewState == "storage" {
+                selectedSection = .storage
                 storageStore.applyPreviewFixture()
+            } else if previewState == "storage-scanning" {
+                selectedSection = .storage
+                storageStore.applyScanningPreviewFixture()
             }
         }
         .onChange(of: selectedSection) { _, section in

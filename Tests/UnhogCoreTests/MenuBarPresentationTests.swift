@@ -98,6 +98,25 @@ struct MenuBarPresentationTests {
         #expect(presentation.compactLabel == nil)
     }
 
+    @Test("Every in-progress phase uses the canonical loading symbol")
+    func usesCanonicalLoadingSymbol() {
+        let measuring = MenuBarPresentation.make(
+            phase: .measuring,
+            leadingGroup: nil,
+            installedMemoryBytes: 24_000_000_000,
+            displayMode: .adaptive
+        )
+        let stopping = MenuBarPresentation.make(
+            phase: .stopping(nil),
+            leadingGroup: nil,
+            installedMemoryBytes: 24_000_000_000,
+            displayMode: .adaptive
+        )
+
+        #expect(measuring.symbolName == "circle.dotted")
+        #expect(stopping.symbolName == measuring.symbolName)
+    }
+
     @Test("Always-visible CPU mode speaks the visible workload metric")
     func speaksAlwaysVisibleCPU() {
         let group = group(cpu: 587, memory: 1_530_000_000)

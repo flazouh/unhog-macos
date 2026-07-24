@@ -82,8 +82,7 @@ struct StorageView: View {
                 storageError(message)
             } else {
                 HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
+                    LoadingIndicator(size: 11)
                     Text("Reading disk capacity…")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
@@ -123,9 +122,9 @@ struct StorageView: View {
             case .idle:
                 scanPrompt
             case .scanning:
-                scanningState
+                liveScanSurface
             case .complete:
-                folderResults
+                resultSurface
             case let .failed(message):
                 VStack(alignment: .leading, spacing: 8) {
                     storageError(message)
@@ -180,27 +179,38 @@ struct StorageView: View {
         )
     }
 
-    private var scanningState: some View {
-        HStack(spacing: 10) {
-            ProgressView()
-                .controlSize(.small)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Scanning common folders…")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("Runs at utility priority")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Cancel") {
-                store.cancelScan()
-            }
-            .buttonStyle(
-                InlineActionStyle(
-                    tone: .secondary,
-                    compact: true
+    private var liveScanSurface: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                LoadingIndicator(size: 11)
+                    .foregroundStyle(UnhogTheme.cpu)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(scanningTitle)
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(scanningDetail)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                }
+
+                Spacer()
+
+                Button("Cancel") {
+                    store.cancelScan()
+                }
+                .buttonStyle(
+                    InlineActionStyle(
+                        tone: .secondary,
+                        compact: true
+                    )
                 )
-            )
+            }
+
+            if !store.folders.isEmpty {
+                discoveryMap
+                folderResults
+            }
         }
         .padding(12)
         .background(UnhogTheme.surface)
@@ -210,6 +220,79 @@ struct StorageView: View {
                 style: .continuous
             )
         )
+        .animation(
+            reduceMotion ? nil : UnhogTheme.motionMove,
+            value: store.folders
+        )
+    }
+
+    private var resultSurface: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !store.folders.isEmpty {
+                discoveryMap
+            }
+            folderResults
+        }
+        .padding(12)
+        .background(UnhogTheme.surface)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: UnhogTheme.cornerRadius,
+                style: .continuous
+            )
+        )
+    }
+
+    private var discoveryMap: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Common folders mapped")
+                Spacer()
+                Text(mappedStorageLabel)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(.secondary)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    UnhogTheme.remainder
+
+                    ForEach(
+                        Array(mappedFolders.enumerated()),
+                        id: \.element.id
+                    ) { index, folder in
+                        Rectangle()
+                            .fill(
+                                storageColor(for: folder)
+                            )
+                            .frame(
+                                width: proxy.size.width
+                                    * discoveredShare(
+                                        folder.bytes
+                                    )
+                            )
+                            .offset(
+                                x: proxy.size.width
+                                    * discoveredOffset(
+                                        before: index
+                                    )
+                            )
+                    }
+                }
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: 4,
+                        style: .continuous
+                    )
+                )
+            }
+            .frame(height: 10)
+            .accessibilityLabel(
+                "\(mappedStorageLabel) discovered in common folders"
+            )
+        }
     }
 
     @ViewBuilder
@@ -229,7 +312,8 @@ struct StorageView: View {
                 ForEach(available.prefix(6)) { folder in
                     StorageFolderRow(
                         folder: folder,
-                        maximumBytes: maximumBytes
+                        maximumBytes: maximumBytes,
+                        color: storageColor(for: folder)
                     )
                     .transition(.opacity)
                 }
@@ -259,6 +343,65 @@ struct StorageView: View {
             .foregroundStyle(UnhogTheme.attention)
     }
 
+    private var mappedFolders: [StorageFolderUsage] {
+        store.folders.filter { $0.status == .available }
+    }
+
+    private var mappedStorageLabel: String {
+        MetricFormatting.storage(discoveredBytes)
+    }
+
+    private var scanningTitle: String {
+        guard let activeID = store.scanProgress?.activeLocationID,
+              let location = StorageLocation.commonLocations().first(
+                  where: { $0.id == activeID }
+              ) else {
+            return "Finding storage…"
+        }
+        return "Scanning \(location.name)"
+    }
+
+    private var scanningDetail: String {
+        guard let progress = store.scanProgress else {
+            return "Preparing a live map"
+        }
+        let locationProgress =
+            "\(progress.completedLocationCount) of "
+            + "\(progress.totalLocationCount) folders"
+        guard progress.discoveredFileCount > 0 else {
+            return locationProgress
+        }
+        return "\(locationProgress) · "
+            + "\(progress.discoveredFileCount.formatted()) files"
+    }
+
+    private func discoveredShare(_ bytes: UInt64) -> Double {
+        let denominator = max(
+            store.volume?.usedBytes ?? 0,
+            discoveredBytes
+        )
+        guard denominator > 0 else {
+            return 0
+        }
+        return Double(bytes) / Double(denominator)
+    }
+
+    private func discoveredOffset(before index: Int) -> Double {
+        mappedFolders.prefix(index).reduce(0) {
+            $0 + discoveredShare($1.bytes)
+        }
+    }
+
+    private var discoveredBytes: UInt64 {
+        store.scanProgress?.discoveredBytes
+            ?? mappedFolders.reduce(0) { total, folder in
+                let addition = total.addingReportingOverflow(folder.bytes)
+                return addition.overflow
+                    ? UInt64.max
+                    : addition.partialValue
+            }
+    }
+
     private func capacityColor(
         for volume: StorageVolumeSnapshot
     ) -> Color {
@@ -276,8 +419,10 @@ struct StorageView: View {
 private struct StorageFolderRow: View {
     let folder: StorageFolderUsage
     let maximumBytes: UInt64
+    let color: Color
 
     @State private var isHovered = false
+    @Environment(\.unhogReduceMotion) private var reduceMotion
 
     var body: some View {
         Button {
@@ -286,9 +431,7 @@ private struct StorageFolderRow: View {
             HStack(spacing: 10) {
                 Image(systemName: symbolName)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(
-                        UnhogTheme.identityColor(for: folder.name)
-                    )
+                    .foregroundStyle(color)
                     .frame(width: 18)
 
                 Text(folder.name)
@@ -344,12 +487,14 @@ private struct StorageFolderRow: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(UnhogTheme.remainder)
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(
-                        UnhogTheme.identityColor(for: folder.name)
-                    )
+                    .fill(color)
                     .frame(
                         width: proxy.size.width
                             * shareOfMaximum
+                    )
+                    .animation(
+                        reduceMotion ? nil : UnhogTheme.motionMove,
+                        value: folder.bytes
                     )
             }
         }
@@ -381,5 +526,30 @@ private struct StorageFolderRow: View {
         default:
             "folder"
         }
+    }
+}
+
+private func storageColor(
+    for folder: StorageFolderUsage
+) -> Color {
+    switch folder.id {
+    case "downloads":
+        UnhogTheme.energy
+    case "applications":
+        UnhogTheme.ram
+    case "documents":
+        UnhogTheme.selection
+    case "pictures":
+        UnhogTheme.ram
+    case "movies":
+        UnhogTheme.destructive
+    case "music":
+        UnhogTheme.ram
+    case "developer":
+        UnhogTheme.cpu
+    case "caches":
+        UnhogTheme.selection
+    default:
+        UnhogTheme.identityColor(for: folder.name)
     }
 }

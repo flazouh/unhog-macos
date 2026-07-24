@@ -53,6 +53,51 @@ struct StorageScannerTests {
         #expect(results.allSatisfy { $0.status == .available })
     }
 
+    @Test("Progress snapshots expose discoveries before completion")
+    func reportsProgressiveDiscoveries() throws {
+        let root = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let first = root.appending(path: "First")
+        let second = root.appending(path: "Second")
+        try FileManager.default.createDirectory(
+            at: first,
+            withIntermediateDirectories: true
+        )
+        try FileManager.default.createDirectory(
+            at: second,
+            withIntermediateDirectories: true
+        )
+        try Data(repeating: 1, count: 128).write(
+            to: first.appending(path: "one.bin")
+        )
+        try Data(repeating: 2, count: 256).write(
+            to: second.appending(path: "two.bin")
+        )
+
+        var snapshots: [StorageScanProgress] = []
+        let results = try StorageScanner().scan(
+            [
+                StorageLocation(id: "first", name: "First", url: first),
+                StorageLocation(id: "second", name: "Second", url: second)
+            ],
+            onProgress: { snapshots.append($0) }
+        )
+
+        #expect(
+            snapshots.contains {
+                $0.completedLocationCount < $0.totalLocationCount
+                    && $0.discoveredFileCount > 0
+                    && !$0.folders.isEmpty
+            }
+        )
+        let final = try #require(snapshots.last)
+        #expect(final.completedLocationCount == 2)
+        #expect(final.totalLocationCount == 2)
+        #expect(final.activeLocationID == nil)
+        #expect(final.discoveredFileCount == 2)
+        #expect(final.folders == results)
+    }
+
     @Test("Symbolic links do not count external files")
     func skipsSymbolicLinks() throws {
         let root = try temporaryDirectory()

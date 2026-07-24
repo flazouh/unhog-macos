@@ -197,8 +197,7 @@ struct ProcessActivityRow: View {
                     } label: {
                         HStack(spacing: 7) {
                             if isWorking {
-                                ProgressView()
-                                    .controlSize(.small)
+                                LoadingIndicator(size: 11)
                             }
                             Text(buttonTitle)
                                 .lineLimit(1)

@@ -14,11 +14,14 @@ final class StorageStore: ObservableObject {
     @Published private(set) var volume: StorageVolumeSnapshot?
     @Published private(set) var folders: [StorageFolderUsage] = []
     @Published private(set) var scanState: ScanState = .idle
+    @Published private(set) var scanProgress: StorageScanProgress?
 
     private let scanner: StorageScanner
     private var overviewTask: Task<Void, Never>?
     private var scanTask: Task<Void, Never>?
     private var scanWorker: Task<StorageFolderLoadOutcome, Never>?
+    private var scanContinuation:
+        AsyncStream<StorageScanProgress>.Continuation?
 
     init(scanner: StorageScanner = StorageScanner()) {
         self.scanner = scanner
@@ -48,20 +51,37 @@ final class StorageStore: ObservableObject {
         guard scanState != .scanning else { return }
         scanTask?.cancel()
         scanState = .scanning
+        folders = []
+        scanProgress = nil
 
         let scanner = scanner
         let locations = StorageLocation.commonLocations()
+        let stream = AsyncStream.makeStream(
+            of: StorageScanProgress.self,
+            bufferingPolicy: .bufferingNewest(2)
+        )
+        scanContinuation = stream.continuation
         let worker = Task.detached(priority: .utility) {
-            StorageFolderLoadOutcome {
-                try scanner.scan(locations)
+            defer { stream.continuation.finish() }
+            return StorageFolderLoadOutcome {
+                try scanner.scan(locations) { progress in
+                    stream.continuation.yield(progress)
+                }
             }
         }
         scanWorker = worker
         scanTask = Task { [weak self] in
+            for await progress in stream.stream {
+                guard !Task.isCancelled else { return }
+                self?.scanProgress = progress
+                self?.folders = progress.folders
+            }
+
             let outcome = await worker.value
             guard !Task.isCancelled else { return }
             self?.scanTask = nil
             self?.scanWorker = nil
+            self?.scanContinuation = nil
             switch outcome {
             case let .loaded(folders):
                 self?.folders = folders
@@ -75,8 +95,10 @@ final class StorageStore: ObservableObject {
     func cancelScan() {
         scanWorker?.cancel()
         scanTask?.cancel()
+        scanContinuation?.finish()
         scanWorker = nil
         scanTask = nil
+        scanContinuation = nil
         scanState = folders.isEmpty ? .idle : .complete
     }
 
@@ -122,13 +144,32 @@ final class StorageStore: ObservableObject {
                 home: home
             )
         ]
+        scanProgress = StorageScanProgress(
+            folders: folders,
+            activeLocationID: nil,
+            completedLocationCount: folders.count,
+            totalLocationCount: folders.count
+        )
         scanState = .complete
+    }
+
+    func applyScanningPreviewFixture() {
+        applyPreviewFixture()
+        folders = Array(folders.prefix(3))
+        scanProgress = StorageScanProgress(
+            folders: folders,
+            activeLocationID: "caches",
+            completedLocationCount: 2,
+            totalLocationCount: 8
+        )
+        scanState = .scanning
     }
 
     deinit {
         overviewTask?.cancel()
         scanWorker?.cancel()
         scanTask?.cancel()
+        scanContinuation?.finish()
     }
 
     private func previewFolder(

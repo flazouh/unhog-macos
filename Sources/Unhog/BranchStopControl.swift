@@ -25,8 +25,7 @@ struct BranchStopControl: View {
                     )
             } else if isStoppingThisBranch {
                 HStack(spacing: 5) {
-                    ProgressView()
-                        .controlSize(.small)
+                    LoadingIndicator(size: 10)
                     Text("Stopping…")
                         .font(.system(size: 9, weight: .semibold))
                 }
