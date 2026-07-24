@@ -6,6 +6,8 @@ import UnhogCore
 @MainActor
 final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
     private let store: AppStore
+    private let storageStore: StorageStore
+    private let agentStore: AgentStore
     private let dismissalPolicy = MenuBarWidgetDismissalPolicy()
     private let statusItem = NSStatusBar.system.statusItem(
         withLength: NSStatusItem.variableLength
@@ -16,8 +18,14 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
     private var applicationDeactivationObserver: NSObjectProtocol?
     private var escapeMonitor: Any?
 
-    init(store: AppStore) {
+    init(
+        store: AppStore,
+        storageStore: StorageStore,
+        agentStore: AgentStore
+    ) {
         self.store = store
+        self.storageStore = storageStore
+        self.agentStore = agentStore
         super.init()
         configureStatusItem()
         configurePopover()
@@ -75,7 +83,11 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
             height: UnhogTheme.popoverHeight
         )
         popover.contentViewController = NSHostingController(
-            rootView: MenuBarWidgetRoot(store: store)
+            rootView: MenuBarWidgetRoot(
+                store: store,
+                storageStore: storageStore,
+                agentStore: agentStore
+            )
         )
     }
 
@@ -166,13 +178,19 @@ final class MenuBarWidgetController: NSObject, NSPopoverDelegate {
 @MainActor
 private struct MenuBarWidgetRoot: View {
     @ObservedObject var store: AppStore
+    @ObservedObject var storageStore: StorageStore
+    @ObservedObject var agentStore: AgentStore
 
     var body: some View {
-        PopoverView(store: store)
-            .environment(
-                \.unhogReduceMotion,
-                store.shouldReduceMotion
-            )
+        PopoverView(
+            store: store,
+            storageStore: storageStore,
+            agentStore: agentStore
+        )
+        .environment(
+            \.unhogReduceMotion,
+            store.shouldReduceMotion
+        )
     }
 }
 

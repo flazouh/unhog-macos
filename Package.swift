@@ -23,6 +23,10 @@ let package = Package(
         .testTarget(
             name: "UnhogCoreTests",
             dependencies: ["UnhogCore"]
+        ),
+        .testTarget(
+            name: "UnhogTests",
+            dependencies: ["Unhog"]
         )
     ]
 )

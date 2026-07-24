@@ -28,16 +28,22 @@ private struct SettingsRoot: View {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let store: AppStore
+    let storageStore: StorageStore
+    let agentStore: AgentStore
     private var menuBarWidgetController: MenuBarWidgetController?
 
     override init() {
         let showsPreviewWindow =
             ProcessInfo.processInfo.environment["UNHOG_UI_PREVIEW"] == "1"
         store = AppStore(actionsEnabled: !showsPreviewWindow)
+        storageStore = StorageStore()
+        agentStore = AgentStore()
         super.init()
 
         if showsPreviewWindow {
             PreviewSupport.store = store
+            PreviewSupport.storageStore = storageStore
+            PreviewSupport.agentStore = agentStore
             PreviewSupport.applyFixtureIfRequested(to: store)
         }
         if ProcessInfo.processInfo.environment[
@@ -55,7 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
             PreviewSupport.present()
         } else {
-            menuBarWidgetController = MenuBarWidgetController(store: store)
+            menuBarWidgetController = MenuBarWidgetController(
+                store: store,
+                storageStore: storageStore,
+                agentStore: agentStore
+            )
         }
     }
 }

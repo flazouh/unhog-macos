@@ -3,8 +3,8 @@ import SwiftUI
 
 struct PopoverView: View {
     @ObservedObject var store: AppStore
-    @StateObject private var storageStore = StorageStore()
-    @StateObject private var agentStore = AgentStore()
+    @ObservedObject var storageStore: StorageStore
+    @ObservedObject var agentStore: AgentStore
     @State private var selectedSection: PopoverSection =
         ProcessInfo.processInfo.environment[
             "UNHOG_UI_PREVIEW_STATE"

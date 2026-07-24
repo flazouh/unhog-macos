@@ -47,6 +47,10 @@ final class StorageStore: ObservableObject {
     }
 
     func scan() {
+        scan(locations: StorageLocation.commonLocations())
+    }
+
+    func scan(locations: [StorageLocation]) {
         guard scanState != .scanning else { return }
         scanTask?.cancel()
         scanState = .scanning
@@ -54,7 +58,6 @@ final class StorageStore: ObservableObject {
         scanProgress = nil
 
         let scanner = scanner
-        let locations = StorageLocation.commonLocations()
         let stream = AsyncStream.makeStream(
             of: StorageScanProgress.self,
             bufferingPolicy: .bufferingNewest(2)
