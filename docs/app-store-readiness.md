@@ -47,14 +47,13 @@ Current Mac App Store gaps:
 ## Direct distribution status
 
 The full app now has a separate direct-release flow in
-`scripts/release-app.sh`. It is locked to the Alexandre de Pape Developer ID
-certificate and team `GD7PWQBWJV`, enables Hardened Runtime, creates a signed
-DMG, submits it to Apple notarization, staples the ticket, and runs a final
-Gatekeeper check. Notarization is locked to the dedicated
-`unhog-notary-alexandre` Keychain profile so another installed account cannot
-be silently selected. A separate publishing script revalidates the ticket and
-uploads the DMG and SHA-256 checksum to the public
-`flazouh/unhog-macos` GitHub Releases page.
+`scripts/release-app.sh`. It is locked to the project's Developer ID
+certificate and Apple team `GD7PWQBWJV`, enables Hardened Runtime, creates a
+signed DMG, submits it to Apple notarization, staples the ticket, and runs a
+final Gatekeeper check. Notarization is locked to a dedicated notarytool
+Keychain profile so another installed account cannot be silently selected. A
+separate publishing script revalidates the ticket and uploads the DMG and
+SHA-256 checksum to the public `flazouh/unhog-macos` GitHub Releases page.
 
 ## Privacy declarations
 

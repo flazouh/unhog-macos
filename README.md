@@ -127,40 +127,6 @@ Views never call process or signal APIs directly. The termination path first
 builds a pure safety plan, then re-validates the PID, start time, and owner
 again just before sending `SIGTERM` or `SIGKILL`.
 
-## For maintainers: cutting a release
-
-Unhog is distributed directly (not via the Mac App Store), because the App
-Store sandbox would block the process monitoring and one-click stopping that are
-the whole point of the app. Releases are locked to Developer ID
-`Alexandre de Pape` / Apple team `GD7PWQBWJV`.
-
-Store notarization credentials once in the Keychain (never in this repo):
-
-```sh
-xcrun notarytool store-credentials "unhog-notary-alexandre" \
-  --apple-id "YOUR_APPLE_ID" \
-  --team-id "GD7PWQBWJV"
-```
-
-Then build, sign, notarize, and staple the public DMG:
-
-```sh
-./scripts/release-app.sh
-```
-
-After pushing the clean release commit to `origin/main`, publish it as a GitHub
-Release (DMG + checksum + build-commit record):
-
-```sh
-./scripts/publish-github-release.sh
-```
-
-The publish script refuses dirty, unpushed, or mismatched builds, and
-re-verifies the checksum and Apple's stapled ticket before creating the
-download. For a local signing test that never contacts Apple, use
-`./scripts/release-app.sh --skip-notarization` (its output is clearly marked
-`NOT-NOTARIZED` and can't overwrite a real release).
-
 ## Known limits
 
 - Unhog can only stop processes owned by the current user.

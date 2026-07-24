@@ -3,9 +3,18 @@ set -euo pipefail
 
 UNHOG_ROOT="${0:A:h:h}"
 UNHOG_APP="$UNHOG_ROOT/dist/Unhog.app"
-UNHOG_IDENTITY="Developer ID Application: Alexandre de Pape (GD7PWQBWJV)"
-UNHOG_EXPECTED_TEAM="GD7PWQBWJV"
-UNHOG_NOTARY_PROFILE="unhog-notary-alexandre"
+
+# Signing configuration is intentionally kept out of version control. Copy
+# scripts/release.local.env.example to scripts/release.local.env and fill in
+# your Developer ID identity, team, and notarytool keychain profile.
+UNHOG_LOCAL_CONFIG="$UNHOG_ROOT/scripts/release.local.env"
+if [[ -f "$UNHOG_LOCAL_CONFIG" ]]; then
+  source "$UNHOG_LOCAL_CONFIG"
+fi
+
+UNHOG_IDENTITY="${UNHOG_SIGN_IDENTITY:-}"
+UNHOG_EXPECTED_TEAM="${UNHOG_TEAM_ID:-}"
+UNHOG_NOTARY_PROFILE="${UNHOG_NOTARY_PROFILE:-}"
 UNHOG_SHOULD_NOTARIZE=true
 
 usage() {
@@ -45,6 +54,18 @@ while (( $# > 0 )); do
       ;;
   esac
 done
+
+if [[ -z "$UNHOG_IDENTITY" || -z "$UNHOG_EXPECTED_TEAM" || -z "$UNHOG_NOTARY_PROFILE" ]]; then
+  print -u2 "Missing signing configuration."
+  print -u2 "Copy scripts/release.local.env.example to scripts/release.local.env"
+  print -u2 "and set UNHOG_SIGN_IDENTITY, UNHOG_TEAM_ID, and UNHOG_NOTARY_PROFILE."
+  exit 1
+fi
+
+if [[ "$UNHOG_IDENTITY" != *"($UNHOG_EXPECTED_TEAM)"* ]]; then
+  print -u2 "Signing identity does not match the configured team $UNHOG_EXPECTED_TEAM."
+  exit 1
+fi
 
 if [[ "$UNHOG_SHOULD_NOTARIZE" == true ]]; then
   working_tree_status="$(git -C "$UNHOG_ROOT" status --porcelain)"

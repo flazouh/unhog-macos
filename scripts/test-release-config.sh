@@ -8,23 +8,23 @@ UNHOG_PUBLISH_SCRIPT="$UNHOG_ROOT/scripts/publish-github-release.sh"
 config="$("$UNHOG_RELEASE_SCRIPT" --print-config)"
 publish_config="$("$UNHOG_PUBLISH_SCRIPT" --print-config)"
 
-if [[ "$config" != *"Developer ID Application: Alexandre de Pape (GD7PWQBWJV)"* ]]; then
-  print -u2 "Release identity is not the Alexandre de Pape Developer ID certificate."
+identity="$(print -r -- "$config" | sed -n 's/^Signing identity: //p')"
+team="$(print -r -- "$config" | sed -n 's/^Expected team: //p')"
+profile="$(print -r -- "$config" | sed -n 's/^Notary profile: //p')"
+
+if [[ -z "$identity" || -z "$team" || -z "$profile" ]]; then
+  print -u2 "Release signing configuration is incomplete."
+  print -u2 "Create scripts/release.local.env from scripts/release.local.env.example."
   exit 1
 fi
 
-if [[ "$config" != *"Expected team: GD7PWQBWJV"* ]]; then
-  print -u2 "Release team is not locked to GD7PWQBWJV."
+if [[ "$identity" != "Developer ID Application:"* ]]; then
+  print -u2 "Release identity is not a Developer ID Application certificate."
   exit 1
 fi
 
-if [[ "$config" != *"Notary profile: unhog-notary-alexandre"* ]]; then
-  print -u2 "Notarization is not locked to the Alexandre Keychain profile."
-  exit 1
-fi
-
-if [[ "$config" == *"Ryan Roberts"* ]]; then
-  print -u2 "Release configuration must never select the Ryan Roberts account."
+if [[ "$identity" != *"($team)"* ]]; then
+  print -u2 "Signing identity does not match the configured team $team."
   exit 1
 fi
 
