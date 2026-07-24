@@ -106,6 +106,17 @@ The tests cover process-family grouping, separation of unrelated sessions,
 sustained-vs-short CPU pressure, cooldown behaviour, and the current-user /
 system-path / self-termination safety guarantees.
 
+Before every commit or release, run the full quality gate:
+
+```sh
+./scripts/verify.sh
+```
+
+This lints with `swift format`, does a clean from-scratch compile, and runs the
+tests. The same gate runs in CI on every push and pull request, and
+`scripts/release-app.sh` runs it before anything is signed or notarized — a
+build that fails lint, compile, or tests can never be released.
+
 ## Architecture
 
 ```text

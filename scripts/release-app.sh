@@ -67,6 +67,10 @@ if [[ "$UNHOG_IDENTITY" != *"($UNHOG_EXPECTED_TEAM)"* ]]; then
   exit 1
 fi
 
+# Quality gate: never sign or notarize code that fails lint, compile, or tests.
+"$UNHOG_ROOT/scripts/verify.sh"
+"$UNHOG_ROOT/scripts/test-release-config.sh"
+
 if [[ "$UNHOG_SHOULD_NOTARIZE" == true ]]; then
   working_tree_status="$(git -C "$UNHOG_ROOT" status --porcelain)"
   if [[ -n "$working_tree_status" ]]; then
