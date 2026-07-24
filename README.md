@@ -1,55 +1,92 @@
+<div align="center">
+
+<img src="docs/assets/unhog-icon.png" alt="Unhog" width="128" height="128" />
+
 # Unhog
 
-Unhog is a native macOS menu-bar app that answers one question:
+**Find out what's hogging your Mac — and stop it safely, in one click.**
 
-> What is hogging this Mac, and can I stop it safely?
+A native macOS menu-bar app that turns "why is my fan screaming?" into a clear,
+honest answer and a single, reversible action.
 
-It groups related processes into understandable families such as Playwright,
-TypeScript servers, Nx, and normal applications. CPU is measured from real
-process-time deltas; memory uses physical footprint with resident memory as a
-fallback. All data stays on the Mac.
+[![Latest release](https://img.shields.io/github/v/release/flazouh/unhog-macos?label=download&color=FF8D22)](https://github.com/flazouh/unhog-macos/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/flazouh/unhog-macos/total?color=15DB95)](https://github.com/flazouh/unhog-macos/releases)
+[![License: MIT](https://img.shields.io/github/license/flazouh/unhog-macos?color=4ACFFF)](LICENSE)
+![Platform: macOS 14+](https://img.shields.io/badge/macOS-14%2B-9758FF)
 
-Its Resource Lens shows each major workload as a share of installed RAM. When
-something looks wrong, Unhog explains the project and process chain behind
-it, stops that verified workload, then measures what changed.
+### [⬇️  Download the latest release](https://github.com/flazouh/unhog-macos/releases/latest)
 
-## Current MVP
+</div>
 
-- Native AppKit status item with a SwiftUI popover; no Electron or web
-  renderer. The popover remains available while another Unhog window is open.
-- Adaptive, low-overhead sampling through macOS `libproc`: five seconds while
-  calm and two seconds while pressure is rising. Expensive physical-footprint
-  reads are limited to processes large or active enough to matter.
-- A compact 100%-of-installed-RAM map with stable app colours and an honest
-  unattributed remainder.
-- A read-only Storage section with disk capacity and an on-demand, cancellable
-  scan of common folders. Storage scanning never runs automatically.
-- A local Agents section showing recent Codex and Claude sessions, their
-  project and model, and a compact context-window map.
-- CPU, RAM share, estimated battery impact, duration, process count, project
-  folder attribution, parent origin, and real app icons.
-- Offline bundled marks for Bun, Node.js, Nx, TypeScript, and Playwright.
-- Session-scoped process-family grouping for Playwright, TypeScript servers,
-  Nx, and apps. Independent jobs never share a kill target.
-- Machine-scaled sustained-load detection so short compile spikes and normal
-  large apps do not create noisy alerts.
-- Local notifications after 20 seconds of high load.
-- One-click normal AppKit quit for GUI apps or `SIGTERM` for developer-tool
-  families, followed by an explicit force-quit option if needed.
-- Restart detection based on workload identity rather than the old PID.
-- A measured before-and-after recovery receipt.
-- PID plus process-start-time validation immediately before every signal.
-- Permanent protection for macOS system processes, other users’ processes,
-  PID 0/1, and Unhog itself.
-- Borderless interface with app colours used for identity and amber reserved
-  for attention.
+---
 
-## Build and run
+## What it does
 
-Requirements:
+Your Mac slows down. The fans spin up. Something is eating your RAM, CPU, or
+battery — but Activity Monitor throws a wall of cryptic process names at you.
 
-- macOS 14 or newer
-- Xcode 16 or newer
+Unhog answers one question:
+
+> **What is hogging this Mac, and can I stop it safely?**
+
+It groups related processes into understandable families — Playwright,
+TypeScript servers, Nx, and normal apps — and shows each major workload as a
+share of your installed RAM. When something looks off, Unhog explains the
+project and process chain behind it, stops that verified workload, then measures
+what actually changed.
+
+- **CPU** is measured from real process-time deltas, not a noisy instantaneous read.
+- **Memory** uses physical footprint, with resident memory as a fallback.
+- **Everything stays on your Mac.** No accounts, no telemetry, no network calls.
+
+## Install
+
+1. **[Download the latest `.dmg`](https://github.com/flazouh/unhog-macos/releases/latest)**
+2. Open it and drag **Unhog** into your **Applications** folder.
+3. Launch it. Unhog lives in your menu bar — click the icon to open it.
+
+The app is signed with a Developer ID and notarized by Apple, so it opens
+without Gatekeeper warnings. Requires **macOS 14 (Sonoma) or newer**.
+
+Prefer to verify the download? Each release ships a `.sha256` checksum:
+
+```sh
+shasum -a 256 -c Unhog-<version>.dmg.sha256
+```
+
+## Highlights
+
+- **Resource Lens** — a compact map of 100% of your installed RAM, with stable
+  per-app colours and an honest "unattributed" remainder. No pretending process
+  totals equal system memory.
+- **One dominant story** — when there's an incident, you get one clear
+  explanation (project → process chain → top worker) and one primary action.
+- **Safe, reversible stopping** — a normal AppKit quit for GUI apps or `SIGTERM`
+  for developer-tool families, with force-quit only offered as a deliberate
+  second step.
+- **Recovery receipt** — after stopping something, Unhog measures the
+  before-and-after so you can see it actually helped.
+- **Branch-scoped stopping** — kill just part of a process stack instead of the
+  whole family.
+- **Storage overview** — read-only disk capacity plus an on-demand, cancellable
+  scan of common folders. It never scans automatically and never deletes.
+- **Local agents view** — recent Codex and Claude sessions with project, model,
+  and a compact context-window map.
+- **Quiet by default** — machine-scaled sustained-load detection means short
+  compile spikes and normal large apps don't spam you. Notifications fire only
+  after 20 seconds of genuine high load.
+
+## Safety first
+
+Unhog can only ever touch processes owned by you, and it re-validates the exact
+PID, process start time, and owner *immediately* before sending any signal.
+Permanently protected: macOS system processes, other users' processes, PID 0/1,
+and Unhog itself. Automatic force-killing is intentionally **not** part of this
+release — stopping is always something you choose.
+
+## Build from source
+
+Requirements: **macOS 14+** and **Xcode 16+**.
 
 ```sh
 chmod +x scripts/package-app.sh
@@ -57,20 +94,47 @@ chmod +x scripts/package-app.sh
 open dist/Unhog.app
 ```
 
-The packaged development app is ad-hoc signed for local use.
+The locally packaged app is ad-hoc signed for development use.
 
-## Publish outside the Mac App Store
+Run the behaviour suite:
 
-The full Unhog app is distributed directly because the Mac App Store sandbox
-would block process monitoring and one-click stopping.
+```sh
+swift test
+```
 
-Releases are locked to:
+The tests cover process-family grouping, separation of unrelated sessions,
+sustained-vs-short CPU pressure, cooldown behaviour, and the current-user /
+system-path / self-termination safety guarantees.
 
-- Developer ID: `Alexandre de Pape`
-- Apple team: `GD7PWQBWJV`
+## Architecture
 
-Never put an Apple password or API key in this repository. Save notarization
-credentials once in the macOS Keychain:
+```text
+SystemProcessSampler     -> immutable ProcessSample values
+ProcessGrouper           -> understandable process families
+ResourcePressureDetector -> sustained, explainable incidents
+MemoryComposition        -> installed-RAM shares and honest remainder
+StorageScanner           -> volume capacity and ranked folder usage
+AgentSessionScanner      -> local Codex and Claude context snapshots
+ResourceExplainer        -> project, process chain, and top worker
+RecoveryVerifier         -> recovered, restarted, or still running
+TerminationPolicy        -> pure safety decision
+SystemProcessTerminator  -> revalidate identity, then signal
+AppStore                 -> UI state and user intents
+SwiftUI views            -> presentation only
+```
+
+Views never call process or signal APIs directly. The termination path first
+builds a pure safety plan, then re-validates the PID, start time, and owner
+again just before sending `SIGTERM` or `SIGKILL`.
+
+## For maintainers: cutting a release
+
+Unhog is distributed directly (not via the Mac App Store), because the App
+Store sandbox would block the process monitoring and one-click stopping that are
+the whole point of the app. Releases are locked to Developer ID
+`Alexandre de Pape` / Apple team `GD7PWQBWJV`.
+
+Store notarization credentials once in the Keychain (never in this repo):
 
 ```sh
 xcrun notarytool store-credentials "unhog-notary-alexandre" \
@@ -78,104 +142,39 @@ xcrun notarytool store-credentials "unhog-notary-alexandre" \
   --team-id "GD7PWQBWJV"
 ```
 
-The command securely asks for an app-specific password. Then build the public
-download:
+Then build, sign, notarize, and staple the public DMG:
 
 ```sh
 ./scripts/release-app.sh
 ```
 
-This creates `dist/Unhog-<version>.dmg`, signs it with Developer ID, enables
-Hardened Runtime, submits it to Apple, staples the approval ticket, and runs a
-final Gatekeeper check. It also creates a matching SHA-256 checksum and records
-the exact Git commit used to build the app.
-
-After pushing the clean release commit to `origin/main`, publish both files as
-a public GitHub Release:
+After pushing the clean release commit to `origin/main`, publish it as a GitHub
+Release (DMG + checksum + build-commit record):
 
 ```sh
 ./scripts/publish-github-release.sh
 ```
 
-The publishing script refuses dirty, unpushed, or mismatched build code,
-rechecks the SHA-256 checksum and Apple’s stapled ticket, then creates the
-download at
-`https://github.com/flazouh/unhog-macos/releases`.
-
-For a local signing test that does not contact Apple:
-
-```sh
-./scripts/release-app.sh --skip-notarization
-```
-
-Test builds use the clearly marked
-`dist/testing/Unhog-<version>-NOT-NOTARIZED.dmg` path and can never overwrite a
-public release. Never publish a release produced with `--skip-notarization`.
-
-## Contributing
-
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
-changing process grouping or termination behavior.
-
-Unhog is available under the [MIT License](LICENSE).
-
-## Tests
-
-```sh
-swift test
-```
-
-The behavior suite covers:
-
-- Playwright and TypeScript family grouping
-- separation of unrelated Playwright sessions
-- ordinary application-tree grouping
-- sustained versus short-lived CPU pressure
-- independent CPU and memory pressure timers
-- cooldown behavior
-- current-user, Apple system-path, and self-termination safety
-- a real `libproc` sampling smoke test
-
-## Architecture
-
-```text
-SystemProcessSampler  -> immutable ProcessSample values
-ProcessGrouper        -> understandable process families
-ResourcePressureDetector -> sustained, explainable incidents
-MemoryComposition     -> installed-RAM shares and honest remainder
-StorageScanner        -> volume capacity and ranked common-folder usage
-AgentSessionScanner    -> local Codex and Claude context-window snapshots
-ResourceExplainer     -> project, process chain, and top worker
-RecoveryVerifier      -> recovered, restarted, or still running
-TerminationPolicy     -> pure safety decision
-SystemProcessTerminator -> revalidate identity, then signal
-AppStore              -> UI state and user intents
-SwiftUI views         -> presentation only
-```
-
-The views never call process or signal APIs. The termination path first creates
-a pure safety plan, then validates the PID, start time, and owner again
-immediately before sending `SIGTERM` or `SIGKILL`.
-
-## Design contract
-
-- Default state is compact and calm, with one installed-RAM map.
-- The active incident gets one dominant explanation and one primary action.
-- No outlined cards or buttons.
-- Hierarchy comes from spacing, type, tonal surfaces, and restrained color.
-- Technical PIDs and child processes are available through disclosure.
-- Battery impact is clearly labelled as an estimate derived from CPU activity.
-- Force quit is never the first action.
-- Automatic force killing is intentionally outside this MVP.
-- Storage cleanup and deletion are intentionally outside this MVP; the
-  Storage section only measures folders and reveals them in Finder.
+The publish script refuses dirty, unpushed, or mismatched builds, and
+re-verifies the checksum and Apple's stapled ticket before creating the
+download. For a local signing test that never contacts Apple, use
+`./scripts/release-app.sh --skip-notarization` (its output is clearly marked
+`NOT-NOTARIZED` and can't overwrite a real release).
 
 ## Known limits
 
 - Unhog can only stop processes owned by the current user.
-- Family detection is heuristic and currently specializes in the developer
+- Family detection is heuristic and currently specialises in the developer
   tools that caused the original incidents.
 - The grey RAM-map remainder deliberately combines macOS, untracked processes,
-  and free memory; it does not pretend process totals equal system used memory.
-- Notification buttons and user-defined automatic rules are planned, but not
-  included in the safety-first MVP.
+  and free memory.
+- Notification action buttons and user-defined automatic rules are planned, but
+  intentionally left out of this safety-first release.
+
+## Contributing
+
+Contributions are welcome — please read [CONTRIBUTING.md](CONTRIBUTING.md)
+before changing process grouping or termination behaviour, and see
+[SECURITY.md](SECURITY.md) to report a vulnerability.
+
+Unhog is open source under the [MIT License](LICENSE).
